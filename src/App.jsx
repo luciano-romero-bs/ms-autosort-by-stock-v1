@@ -18,6 +18,7 @@ import PreviewList from "./components/PreviewList.jsx";
 import SortButton from "./components/SortButton.jsx";
 import SavedAutomations from "./components/SavedAutomations.jsx";
 import UnautomatedCollections from "./components/UnautomatedCollections.jsx";
+import BackToTop from "./components/BackToTop.jsx";
 
 function toCollectionGid(id) {
   return `gid://shopify/Collection/${id}`;
@@ -184,21 +185,24 @@ export default function App() {
   if (!loggedIn) return <Login onLoggedIn={() => setLoggedIn(true)} />;
 
   return (
-    <div className="app">
-      <header>
-        <h1>Ordenador de colecciones</h1>
-        <button
-          type="button"
-          className="link-button"
-          onClick={() => {
-            logout();
-            setLoggedIn(false);
-          }}
-        >
-          Cerrar sesión
-        </button>
+    <>
+      <header className="navbar">
+        <div className="navbar-inner">
+          <h1>Ordenador de colecciones</h1>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => {
+              logout();
+              setLoggedIn(false);
+            }}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </header>
 
+      <div className="app">
       <StoreSelector storeSlug={storeSlug} onChange={handleStoreChange} />
 
       {storeSlug && (
@@ -278,6 +282,9 @@ export default function App() {
           onConfigure={handleConfigure}
         />
       )}
-    </div>
+      </div>
+
+      <BackToTop />
+    </>
   );
 }

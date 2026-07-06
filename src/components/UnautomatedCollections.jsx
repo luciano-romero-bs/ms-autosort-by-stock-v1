@@ -141,7 +141,7 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
               className="not-manual-badge"
               title='La corrida diaria saltea colecciones que no están en orden "Manual" en Shopify.'
             >
-              no Manual
+              No manual
             </span>
           )}
         </div>
@@ -185,17 +185,18 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
                 <button
                   type="button"
                   className="primary"
-                  onClick={() => handleQuickAutomate(col)}
-                  disabled={busyGid === col.collection_gid}
-                >
-                  {busyGid === col.collection_gid ? "Creando..." : "Automatizar stock"}
-                </button>
-                <button
-                  type="button"
                   onClick={() => onConfigure(numericId(col.collection_gid))}
                   disabled={busyGid === col.collection_gid}
                 >
                   Crear automatización
+                </button>
+                <button
+                  type="button"
+                  className="dark"
+                  onClick={() => handleQuickAutomate(col)}
+                  disabled={busyGid === col.collection_gid}
+                >
+                  {busyGid === col.collection_gid ? "Creando..." : "Automatizar stock"}
                 </button>
                 <button
                   type="button"

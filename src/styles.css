@@ -40,10 +40,27 @@ body {
   padding: 1.5rem;
 }
 
-header {
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+
+.navbar-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0.65rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+}
+
+.navbar h1 {
+  font-size: 1.05rem;
+  margin: 0;
 }
 
 .link-button {
@@ -122,6 +139,12 @@ button {
 
 button.primary {
   background: #1a73e8;
+  color: white;
+  border: none;
+}
+
+button.dark {
+  background: #1a1a1a;
   color: white;
   border: none;
 }
@@ -332,14 +355,17 @@ button.danger {
 
 .collection-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 0.7rem 1rem;
+}
+
+.collection-row .automation-actions {
+  flex-wrap: wrap;
 }
 
 .collection-info {
@@ -370,6 +396,21 @@ button.danger {
 
 .ignored-list .collection-row {
   opacity: 0.65;
+}
+
+.back-to-top {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 30;
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
 }
 
 .error-text {
