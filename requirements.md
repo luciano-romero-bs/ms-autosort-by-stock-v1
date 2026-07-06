@@ -7,7 +7,7 @@
 
 ## Contexto
 
-App interna para la tienda Shopify de Jack & Jones Uruguay (`jack-jones-uy.myshopify.com`).
+App interna para la tienda Shopify de Jack & Jones Uruguay (`jack-jones-dev.myshopify.com`).
 Reordena los productos dentro de una colección combinando dos criterios: primero agrupa por
 `productType` (en un orden que define el usuario) y dentro de cada grupo ordena por stock
 (`totalInventory`) descendente. Los productos con stock por debajo de un umbral configurable

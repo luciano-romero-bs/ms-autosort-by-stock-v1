@@ -62,7 +62,7 @@ ningún `.env`). Para desarrollo local con `vercel dev`, se copian a un `.env.lo
 
 | Variable | Descripción |
 |---|---|
-| `SHOPIFY_SHOP` | `jack-jones-uy.myshopify.com` |
+| `SHOPIFY_SHOP` | `jack-jones-dev.myshopify.com` |
 | `SHOPIFY_ADMIN_TOKEN` | Token offline no expirable (Authorization Code Grant) |
 | `SHOPIFY_API_VERSION` | ej. `2025-10` |
 | `SUPABASE_URL` | URL del proyecto Supabase |
