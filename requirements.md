@@ -141,6 +141,18 @@ Criterios de aceptación:
 4. CUANDO la corrida diaria detecta categorías nuevas (R7.3), EL SISTEMA DEBE marcarlas como "Nueva" en la automatización correspondiente, mostrarlas visiblemente diferenciadas, y notificar al usuario en el panel qué colecciones tienen categorías sin ubicar.
 5. CUANDO el usuario clickea el badge "Nueva" de una categoría, EL FLAG DEBE desaparecer y la categoría DEBE pasar al final del orden guardado, desde donde puede reubicarse editando la automatización.
 
+### R11 — Detección de colecciones sin automatizar
+
+**Historia:** Como usuario, quiero ver qué colecciones de cada tienda todavía no tienen automatización, para decidir colección por colección si automatizarla, configurarla a mano o ignorarla.
+
+Criterios de aceptación:
+1. EL SISTEMA DEBE poder sincronizar on-demand (botón "Refrescar colecciones") el listado completo de colecciones de la tienda seleccionada desde la Admin API (id, título, sortOrder, cantidad de productos), paginando hasta traerlas todas, y persistirlo en Supabase para no reconsultar Shopify en cada visita al panel.
+2. EL SISTEMA DEBE mostrar la lista de colecciones pendientes (ni automatizadas ni ignoradas) de la tienda seleccionada, cruzando el listado sincronizado contra las automatizaciones existentes por `store_id + collection_gid`.
+3. CADA colección pendiente DEBE ofrecer: "Automatizar stock" (crea la automatización con categorías detectadas automáticamente y el umbral más frecuente de la tienda, previa confirmación), "Crear automatización" (precarga el panel de configuración avanzada con esa colección), e "Ignorar" (la oculta del listado sin automatizarla, reversible desde un listado de ignoradas).
+4. EL SISTEMA DEBE indicar visualmente las colecciones cuyo `sortOrder` no es `MANUAL`, porque la corrida diaria las saltea.
+
+## Fuera de alcance de esta versión
+
 - Docker, Kubernetes, Argo CD, GitOps: no aplican acá (ver `ms-autosort-by-stock/` para esa variante).
 - Alta disponibilidad / múltiples regiones: no hace falta para una tienda interna de bajo tráfico.
 - Migrar a app embebida de Shopify (App Bridge/Polaris): fuera de alcance; sigue siendo un panel standalone.

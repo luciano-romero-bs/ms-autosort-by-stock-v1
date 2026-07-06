@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function CollectionLoader({ onLoad, loading }) {
+export default function CollectionLoader({ onLoad, loading, presetId }) {
   const [id, setId] = useState("");
+
+  // Filled in from outside when the user clicks "Crear automatización" in
+  // the unautomated-collections list.
+  useEffect(() => {
+    if (presetId) setId(presetId);
+  }, [presetId]);
 
   function handleSubmit(e) {
     e.preventDefault();

@@ -17,6 +17,7 @@ import ThresholdInput from "./components/ThresholdInput.jsx";
 import PreviewList from "./components/PreviewList.jsx";
 import SortButton from "./components/SortButton.jsx";
 import SavedAutomations from "./components/SavedAutomations.jsx";
+import UnautomatedCollections from "./components/UnautomatedCollections.jsx";
 
 function toCollectionGid(id) {
   return `gid://shopify/Collection/${id}`;
@@ -40,6 +41,7 @@ export default function App() {
   const [automating, setAutomating] = useState(false);
   const [automateDone, setAutomateDone] = useState(false);
   const [automateError, setAutomateError] = useState(null);
+  const [presetCollectionId, setPresetCollectionId] = useState("");
 
   async function loadConfigs(slug) {
     try {
@@ -141,6 +143,14 @@ export default function App() {
     collectionId && configs.some((c) => c.collection_gid === toCollectionGid(collectionId))
   );
 
+  // "Crear automatización" from the unautomated-collections list: preloads
+  // the advanced panel with that collection, same flow as typing the ID.
+  function handleConfigure(id) {
+    setPresetCollectionId(id);
+    handleLoad(id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function handleAutomate() {
     const verb = hasAutomation ? "actualizar la automatización con" : "automatizar";
     const ok = window.confirm(
@@ -193,7 +203,7 @@ export default function App() {
 
       {storeSlug && (
         <>
-          <CollectionLoader onLoad={handleLoad} loading={loadingCollection} />
+          <CollectionLoader onLoad={handleLoad} loading={loadingCollection} presetId={presetCollectionId} />
           {loadError && <p className="error-text">✖ {loadError}</p>}
         </>
       )}
@@ -257,6 +267,15 @@ export default function App() {
           storeSlug={storeSlug}
           configs={configs}
           onReload={() => loadConfigs(storeSlug)}
+        />
+      )}
+
+      {storeSlug && (
+        <UnautomatedCollections
+          storeSlug={storeSlug}
+          configs={configs}
+          onReloadConfigs={() => loadConfigs(storeSlug)}
+          onConfigure={handleConfigure}
         />
       )}
     </div>

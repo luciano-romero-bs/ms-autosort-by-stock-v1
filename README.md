@@ -57,8 +57,8 @@ npm run cron:local
 ## Supabase: crear las tablas
 
 En el SQL Editor del proyecto de Supabase, correr en orden `supabase/migrations/0001_init.sql`,
-`0002_multi_store.sql` y `0003_new_product_types.sql`. Crean `stores`, `collection_configs`,
-`run_logs` y `collection_locks`.
+`0002_multi_store.sql`, `0003_new_product_types.sql` y `0004_store_collections.sql`. Crean
+`stores`, `collection_configs`, `run_logs`, `collection_locks` y `store_collections`.
 
 ## Deploy
 

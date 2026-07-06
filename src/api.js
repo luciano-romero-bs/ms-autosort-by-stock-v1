@@ -90,3 +90,18 @@ export function deleteConfig(storeSlug, collectionGid) {
     method: "DELETE",
   });
 }
+
+export function fetchStoreCollections(storeSlug) {
+  return apiFetch(`/api/store/${storeSlug}/collections`);
+}
+
+export function syncStoreCollections(storeSlug) {
+  return apiFetch(`/api/store/${storeSlug}/collections`, { method: "POST" });
+}
+
+export function setCollectionIgnored(storeSlug, collectionGid, ignored) {
+  return apiFetch(`/api/store/${storeSlug}/collections/${encodeURIComponent(collectionGid)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ignored }),
+  });
+}

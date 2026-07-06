@@ -313,6 +313,65 @@ button.danger {
   cursor: pointer;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.collection-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.collection-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+}
+
+.collection-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.collection-meta {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.not-manual-badge {
+  background: #fff4e0;
+  border: 1px solid #e5b96d;
+  color: #b26a00;
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ignored-block {
+  margin-top: 0.75rem;
+}
+
+.ignored-list .collection-row {
+  opacity: 0.65;
+}
+
 .error-text {
   color: #c0392b;
 }

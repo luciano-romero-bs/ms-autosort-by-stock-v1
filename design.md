@@ -83,7 +83,8 @@ tienda y viven en la tabla `stores` (sección 4) — se cargan desde el panel, n
 
 Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.sql` (agrega
 `stores` y reconstruye las tres tablas siguientes con `store_id`) + `0003_new_product_types.sql`
-(columna `new_product_types` en `collection_configs`). Correr las tres en orden.
+(columna `new_product_types` en `collection_configs`) + `0004_store_collections.sql` (tabla
+`store_collections` para la detección de colecciones sin automatizar). Correr las cuatro en orden.
 
 ### `stores`
 
@@ -131,6 +132,24 @@ Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.
 | `collection_gid` | text | Parte de la PK compuesta junto con `store_id` |
 | `locked_at` | timestamptz | Usado para expirar locks huérfanos |
 
+### `store_collections` (migración `0004`)
+
+Cache de todas las colecciones de cada tienda, sincronizado on-demand desde Shopify (botón
+"Refrescar colecciones"). Se cruza contra `collection_configs` para detectar colecciones sin
+automatizar. El estado de cada colección es derivado, no una columna: **automatizada** = existe
+una config con su `(store_id, collection_gid)`; **ignorada** = `ignored = true`; **pendiente** =
+ninguna de las dos.
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `store_id` | uuid (FK -> stores) | Parte de la PK compuesta |
+| `collection_gid` | text | Parte de la PK compuesta junto con `store_id` |
+| `title` | text | |
+| `sort_order` | text | Para avisar en el panel si no está en `MANUAL` |
+| `products_count` | int | Cantidad de productos (viene gratis en la misma query) |
+| `ignored` | boolean | Oculta la colección del listado de pendientes sin automatizarla |
+| `synced_at` | timestamptz | El sync borra las filas con `synced_at` viejo (colecciones eliminadas en Shopify) |
+
 Las cuatro tablas tienen Row Level Security habilitada sin políticas: solo el backend accede,
 usando siempre `SUPABASE_SERVICE_KEY` (`service_role`, que ignora RLS). Ningún código de este
 proyecto usa la key `anon`, así que RLS acá es defensa en profundidad, no la barrera principal.
@@ -172,6 +191,8 @@ entre colecciones, ahora también entre tiendas).
 | `GET /api/configs` | `api/configs.js` | Basic auth. Sin filtrar por tienda (usado solo como ping de login) |
 | `GET /api/store/:storeSlug/configs` | `api/store/[storeSlug]/configs.js` | Basic auth. Lista las automatizaciones guardadas de la tienda |
 | `GET\|PUT\|DELETE /api/store/:storeSlug/config/:collectionGid` | `api/store/[storeSlug]/config/[collectionGid].js` | Basic auth. PUT crea/edita la automatización; DELETE la elimina |
+| `GET\|POST /api/store/:storeSlug/collections` | `api/store/[storeSlug]/collections/index.js` | Basic auth. GET lee el cache; POST re-sincroniza desde Shopify y devuelve la lista fresca |
+| `PATCH /api/store/:storeSlug/collections/:collectionGid` | `api/store/[storeSlug]/collections/[collectionGid].js` | Basic auth. Body `{ ignored: boolean }` |
 | `GET\|POST /api/cron/run` | `api/cron/run.js` | Cron secret (Bearer o `X-Cron-Secret`). Recorre todas las tiendas |
 
 Mismos payloads de request/response que `ms-autosort-by-stock/design.md` sección 5 para los
@@ -186,6 +207,28 @@ Ordenar una colección desde el panel **ya no guarda nada solo** (el `POST reord
 `PUT` de la config actual (orden de categorías + umbral, `enabled: true`). Las automatizaciones
 viven en la sección **"Automatizaciones guardadas"** del panel, donde se pueden editar (drag del
 orden, umbral) o eliminar en cualquier momento.
+
+### Colecciones sin automatizar
+
+Sección del panel que lista las colecciones de la tienda seleccionada que todavía no tienen
+automatización. El listado sale del cache `store_collections`; el botón **"Refrescar colecciones"**
+dispara el sync on-demand contra Shopify (query `collections(first: 250)` paginada con
+`pageInfo.hasNextPage`/`endCursor`, trayendo `id`, `title`, `sortOrder` y `productsCount`). No hay
+cron para esto: es a pedido, como pidió el negocio.
+
+Cada colección pendiente ofrece tres acciones:
+
+- **"Automatizar stock"**: crea la automatización sin pasar por el panel avanzado. Trae los
+  productos, detecta los `productType` (quedan en orden alfabético) y guarda la config con el
+  umbral "estándar" de la tienda — el más frecuente entre sus automatizaciones existentes
+  (0 si no hay ninguna). Pide confirmación mostrando esos defaults.
+- **"Crear automatización"**: precarga el panel de configuración avanzada de arriba (mismo flujo
+  que tipear el Collection ID) para armar el orden a mano.
+- **"Ignorar"**: marca `ignored = true`; la colección deja de aparecer como pendiente. Hay un
+  listado colapsable de ignoradas con "Dejar de ignorar".
+
+Las colecciones cuyo `sortOrder` no es `MANUAL` se marcan con un badge "no Manual" (se pueden
+automatizar igual, pero la corrida diaria las va a saltear hasta que se cambien en Shopify).
 
 ### Categorías nuevas detectadas por el cron
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getCollectionProducts, reorderCollection } from "../lib/shopifyClient.js";
+import { getCollectionProducts, reorderCollection, listCollections } from "../lib/shopifyClient.js";
 
 const TEST_STORE = { shopDomain: "test-shop.myshopify.com", adminToken: "test-token", apiVersion: "2025-10" };
 
@@ -118,4 +118,38 @@ test("reorderCollection throws when the mutation returns userErrors", async (t) 
 test("shopifyGraphQL throws a clear error on 401", async (t) => {
   t.mock.method(globalThis, "fetch", async () => jsonResponse({}, 401));
   await assert.rejects(() => getCollectionProducts("gid://shopify/Collection/1", TEST_STORE), /401/);
+});
+
+test("listCollections paginates and flattens productsCount", async (t) => {
+  t.mock.method(globalThis, "fetch", async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    if (!body.variables.cursor) {
+      return jsonResponse({
+        data: {
+          collections: {
+            pageInfo: { hasNextPage: true, endCursor: "c1" },
+            nodes: [
+              { id: "gid://shopify/Collection/1", title: "Alfa", sortOrder: "MANUAL", productsCount: { count: 12 } },
+            ],
+          },
+        },
+      });
+    }
+    return jsonResponse({
+      data: {
+        collections: {
+          pageInfo: { hasNextPage: false, endCursor: null },
+          nodes: [
+            { id: "gid://shopify/Collection/2", title: "Beta", sortOrder: "BEST_SELLING", productsCount: null },
+          ],
+        },
+      },
+    });
+  });
+
+  const collections = await listCollections(TEST_STORE);
+  assert.deepEqual(collections, [
+    { id: "gid://shopify/Collection/1", title: "Alfa", sortOrder: "MANUAL", productsCount: 12 },
+    { id: "gid://shopify/Collection/2", title: "Beta", sortOrder: "BEST_SELLING", productsCount: null },
+  ]);
 });

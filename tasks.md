@@ -103,6 +103,24 @@ probó contra Shopify/Supabase reales (requiere las credenciales reales del usua
   confirmación, badges "Nueva" clickeables y banner de aviso. (R10)
 - [ ] 7.5 Correr `0003_new_product_types.sql` en el Supabase real. — **pendiente: lo hace el usuario.**
 
+## Fase 8 — Colecciones sin automatizar
+
+- [x] 8.1 `supabase/migrations/0004_store_collections.sql`: tabla `store_collections` (cache del
+  listado de colecciones por tienda, flag `ignored`, `synced_at` para podar eliminadas). (R11.1)
+- [x] 8.2 `lib/shopifyClient.js#listCollections`: query `collections(first: 250)` paginada con
+  `id`, `title`, `sortOrder`, `productsCount`. Test de paginación. (R11.1)
+- [x] 8.3 `lib/supabaseClient.js`: `listStoreCollections`, `replaceStoreCollections` (upsert que
+  preserva `ignored` + poda por `synced_at`), `setCollectionIgnored`. (R11.1, R11.3)
+- [x] 8.4 API: `GET|POST /api/store/:slug/collections` (leer cache / sync on-demand) y
+  `PATCH /api/store/:slug/collections/:gid` (`{ ignored }`). `maxDuration: 60` para el sync y
+  para `products`. (R11.1, R11.3)
+- [x] 8.5 Frontend `UnautomatedCollections.jsx`: botón "Refrescar colecciones", lista de
+  pendientes (cruce cache vs configs en el cliente), acciones "Automatizar stock" (defaults:
+  categorías alfabéticas + umbral más frecuente de la tienda, con confirmación), "Crear
+  automatización" (precarga el panel avanzado vía `presetId` del `CollectionLoader`) e "Ignorar"
+  (+ listado colapsable de ignoradas con restaurar). Badge "no Manual". (R11.2–R11.4)
+- [ ] 8.6 Correr `0004_store_collections.sql` en el Supabase real. — **pendiente: lo hace el usuario.**
+
 ## Notas
 
 - El token de Shopify es offline y no expira; si aparece un 401, el mensaje indica regenerarlo
