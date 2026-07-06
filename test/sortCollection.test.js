@@ -69,7 +69,9 @@ test("threshold sends totalInventory <= N to the bottom, ordered by inventory de
     { id: "camiseta-derek", title: "CAMISETA DEREK", totalInventory: 3, productType: "vestimenta-poleras" },
   ];
 
-  const { finalOrder } = sortCollection(products, GROUP_ORDER, 2);
+  // Every type present is known here, so this exercises the threshold alone.
+  const order = [...GROUP_ORDER, "vestimenta-camperas", UNCATEGORIZED];
+  const { finalOrder } = sortCollection(products, order, 2);
 
   // CAMISETA DEREK has 3 > 2, stays in main; the other four (<=2) go to the bottom.
   assert.equal(finalOrder[0], "camiseta-derek");
@@ -101,15 +103,29 @@ test("null/empty productType falls into the (sin categoría) group", () => {
   assert.deepEqual(newGroups, []);
 });
 
-test("a productType not present in productTypeOrder is appended after known groups (R7.3)", () => {
+test("a productType not present in productTypeOrder goes to the very bottom (R7.3)", () => {
   const products = [
     { id: "jean", title: "JEAN", totalInventory: 10, productType: "vestimenta-jeans" },
     { id: "campera", title: "CAMPERA", totalInventory: 50, productType: "vestimenta-camperas" },
   ];
   const { finalOrder, newGroups } = sortCollection(products, ["vestimenta-jeans"], 0);
-  // campera has way more stock but its group is unknown, so it still goes after jeans.
+  // campera has way more stock but its group is unknown, so it still goes last.
   assert.deepEqual(finalOrder, ["jean", "campera"]);
   assert.deepEqual(newGroups, ["vestimenta-camperas"]);
+});
+
+test("new productTypes go below even the low-stock bucket, and the threshold doesn't split them", () => {
+  const products = [
+    { id: "known-high", title: "KNOWN HIGH", totalInventory: 50, productType: "known" },
+    { id: "known-low", title: "KNOWN LOW", totalInventory: 1, productType: "known" },
+    { id: "new-high", title: "NEW HIGH", totalInventory: 99, productType: "brand-new" },
+    { id: "new-low", title: "NEW LOW", totalInventory: 1, productType: "brand-new" },
+  ];
+  const { finalOrder, newGroups } = sortCollection(products, ["known"], 2);
+  // The whole pending category stays together at the very bottom: its own
+  // low-stock products don't jump above it into the threshold bucket.
+  assert.deepEqual(finalOrder, ["known-high", "known-low", "new-high", "new-low"]);
+  assert.deepEqual(newGroups, ["brand-new"]);
 });
 
 test("multiple new productTypes are ordered alphabetically among themselves", () => {

@@ -1,10 +1,6 @@
-export default function SortButton({ onClick, loading, result, error, save, onSaveChange, disabled }) {
+export default function SortButton({ onClick, loading, result, error, disabled }) {
   return (
     <div className="sort-action">
-      <label className="save-toggle">
-        <input type="checkbox" checked={save} onChange={(e) => onSaveChange(e.target.checked)} />
-        Guardar configuración (usada por la corrida diaria)
-      </label>
       <button type="button" className="primary" onClick={onClick} disabled={loading || disabled}>
         {loading ? "Ordenando..." : "Ordenar colección"}
       </button>

@@ -82,7 +82,8 @@ tienda y viven en la tabla `stores` (sección 4) — se cargan desde el panel, n
 ## 4. Modelo de datos (Supabase)
 
 Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.sql` (agrega
-`stores` y reconstruye las tres tablas siguientes con `store_id`). Correr ambas en orden.
+`stores` y reconstruye las tres tablas siguientes con `store_id`) + `0003_new_product_types.sql`
+(columna `new_product_types` en `collection_configs`). Correr las tres en orden.
 
 ### `stores`
 
@@ -107,6 +108,7 @@ Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.
 | `product_type_order` | jsonb | Array ordenado de strings de `productType` |
 | `stock_threshold` | int | Umbral. 0 = sin fondo por stock |
 | `enabled` | boolean | Si entra o no en la corrida diaria |
+| `new_product_types` | jsonb | productTypes detectados por el cron que el usuario todavía no ubicó (flags "Nueva" en el panel). Migración `0003` |
 | `updated_at` | timestamptz | |
 
 ### `run_logs`
@@ -168,20 +170,50 @@ entre colecciones, ahora también entre tiendas).
 | `GET /api/store/:storeSlug/collection/:id/products` | `api/store/[storeSlug]/collection/[id]/products.js` | Basic auth |
 | `POST /api/store/:storeSlug/collection/:id/reorder` | `api/store/[storeSlug]/collection/[id]/reorder.js` | Basic auth |
 | `GET /api/configs` | `api/configs.js` | Basic auth. Sin filtrar por tienda (usado solo como ping de login) |
-| `GET /api/store/:storeSlug/config/:collectionGid` | `api/store/[storeSlug]/config/[collectionGid].js` | Basic auth |
+| `GET /api/store/:storeSlug/configs` | `api/store/[storeSlug]/configs.js` | Basic auth. Lista las automatizaciones guardadas de la tienda |
+| `GET\|PUT\|DELETE /api/store/:storeSlug/config/:collectionGid` | `api/store/[storeSlug]/config/[collectionGid].js` | Basic auth. PUT crea/edita la automatización; DELETE la elimina |
 | `GET\|POST /api/cron/run` | `api/cron/run.js` | Cron secret (Bearer o `X-Cron-Secret`). Recorre todas las tiendas |
 
 Mismos payloads de request/response que `ms-autosort-by-stock/design.md` sección 5 para los
 endpoints de colección/reorder/config — la única diferencia es el segmento `:storeSlug` extra en
 la URL. No se repiten acá.
 
+### Automatizaciones guardadas (flujo del panel)
+
+Ordenar una colección desde el panel **ya no guarda nada solo** (el `POST reorder` va siempre con
+`save: false`). Después de un ordenado exitoso aparece el botón **"Automatizar ordenado"** (o
+"Actualizar automatización" si ya existía una para esa colección), que pide confirmación y hace un
+`PUT` de la config actual (orden de categorías + umbral, `enabled: true`). Las automatizaciones
+viven en la sección **"Automatizaciones guardadas"** del panel, donde se pueden editar (drag del
+orden, umbral) o eliminar en cualquier momento.
+
+### Categorías nuevas detectadas por el cron
+
+Cuando la corrida diaria encuentra un `productType` que no está en el orden guardado:
+
+1. Sus productos van **al fondo absoluto** de la colección (debajo incluso del fondo por stock
+   bajo), agrupados y sin partirse por el umbral — ver sección 7.
+2. El cron agrega ese type a `new_product_types` de la config (además del aviso en `run_logs`).
+3. El panel lo muestra en la tarjeta de la automatización con un badge **"Nueva"** (y un banner
+   arriba de la sección avisa qué colecciones tienen categorías sin ubicar).
+4. Al clickear el badge, el flag desaparece: el type pasa al **final** de `product_type_order`
+   (deja de ser "nuevo") y desde ahí se puede arrastrar a cualquier posición editando la
+   automatización.
+
 ## 7. Algoritmo de ordenamiento
 
-Sin cambios respecto a la otra versión ni respecto al soporte multi-tienda: vive en
-`shared/sortCollection.mjs` y `shared/buildMoves.mjs`, funciones puras sin I/O que no saben nada
-de tiendas ni de Supabase. Ver `ms-autosort-by-stock/design.md` sección 6 para el detalle completo
-del algoritmo (particionado por umbral, agrupación por productType, desempate por título, manejo
-de productType nuevo).
+Vive en `shared/sortCollection.mjs` y `shared/buildMoves.mjs`, funciones puras sin I/O que no
+saben nada de tiendas ni de Supabase. Ver `ms-autosort-by-stock/design.md` sección 6 para la base
+del algoritmo (particionado por umbral, agrupación por productType, desempate por título).
+
+**Diferencia con esa versión** — colocación de categorías nuevas: acá los `productType` que no
+están en `productTypeOrder` van al **fondo absoluto** de la colección (debajo del fondo por stock
+bajo), como grupos enteros (el umbral no los parte: toda la categoría está pendiente de revisión).
+Entre sí se ordenan alfabéticamente, y adentro por stock descendente. El layout final es:
+
+1. Grupos conocidos en el orden configurado (stock desc adentro de cada uno).
+2. Fondo por stock bajo (`totalInventory <= umbral`), stock desc.
+3. Categorías nuevas, al fondo del todo.
 
 ## 8. Integración con Shopify y serialización
 

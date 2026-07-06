@@ -88,6 +88,21 @@ probó contra Shopify/Supabase reales (requiere las credenciales reales del usua
 - [ ] 6.7 Correr `0002_multi_store.sql` en el Supabase real y dar de alta las tiendas desde el
   panel. — **pendiente: lo hace el usuario.**
 
+## Fase 7 — Automatizaciones guardadas y categorías nuevas
+
+- [x] 7.1 `supabase/migrations/0003_new_product_types.sql`: columna `new_product_types` en
+  `collection_configs`. (R10.4)
+- [x] 7.2 `shared/sortCollection.mjs`: categorías fuera del orden guardado van al fondo absoluto
+  (debajo del fondo por stock), enteras. Tests actualizados + test nuevo. (R7.3)
+- [x] 7.3 Backend: `upsertConfig` acepta `newProductTypes`, `deleteConfig`, `setNewProductTypes`;
+  el cron mergea los grupos nuevos en `new_product_types`. `GET /api/store/:slug/configs` nuevo;
+  `PUT`/`DELETE` en `config/[collectionGid]`. (R10.1–R10.4)
+- [x] 7.4 Frontend: se quita el checkbox de guardar (reorder siempre `save:false`); botón
+  "Automatizar ordenado"/"Actualizar automatización" con confirmación tras un ordenado OK; sección
+  "Automatizaciones guardadas" (`SavedAutomations.jsx`) con edición drag+umbral, eliminación con
+  confirmación, badges "Nueva" clickeables y banner de aviso. (R10)
+- [ ] 7.5 Correr `0003_new_product_types.sql` en el Supabase real. — **pendiente: lo hace el usuario.**
+
 ## Notas
 
 - El token de Shopify es offline y no expira; si aparece un 401, el mensaje indica regenerarlo

@@ -73,3 +73,20 @@ export function reorderCollection(storeSlug, id, { productTypeOrder, stockThresh
 export function fetchConfig(storeSlug, collectionGid) {
   return apiFetch(`/api/store/${storeSlug}/config/${encodeURIComponent(collectionGid)}`);
 }
+
+export function fetchStoreConfigs(storeSlug) {
+  return apiFetch(`/api/store/${storeSlug}/configs`);
+}
+
+export function saveConfig(storeSlug, collectionGid, { collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes }) {
+  return apiFetch(`/api/store/${storeSlug}/config/${encodeURIComponent(collectionGid)}`, {
+    method: "PUT",
+    body: JSON.stringify({ collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes }),
+  });
+}
+
+export function deleteConfig(storeSlug, collectionGid) {
+  return apiFetch(`/api/store/${storeSlug}/config/${encodeURIComponent(collectionGid)}`, {
+    method: "DELETE",
+  });
+}

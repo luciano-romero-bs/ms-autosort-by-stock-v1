@@ -202,11 +202,115 @@ button:disabled {
   margin: 1.5rem 0;
 }
 
-.save-toggle {
+.automate-action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.automations {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+.automation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.automation-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.automation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.automation-id {
+  color: #888;
+  font-size: 0.8rem;
+  margin-left: 0.6rem;
+}
+
+.automation-summary {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.automation-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.automation-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px dashed #ddd;
+  padding-top: 0.75rem;
+}
+
+.automation-editor h4 {
+  margin: 0;
+}
+
+button.danger {
+  background: #fdecea;
+  border: 1px solid #e8a09a;
+  color: #b3261e;
+}
+
+.new-types {
+  border-top: 1px dashed #ddd;
+  padding-top: 0.6rem;
+}
+
+.new-type-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.new-type-list li {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.9rem;
+  gap: 0.6rem;
+  background: #fffbe8;
+  border: 1px solid #efd68a;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+}
+
+.new-type-badge {
+  background: #f0a500;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .error-text {

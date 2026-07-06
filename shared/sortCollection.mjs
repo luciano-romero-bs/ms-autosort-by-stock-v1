@@ -26,18 +26,33 @@ export function isBelowThreshold(product, stockThreshold) {
 /**
  * Pure sorting algorithm — no I/O. Shared between backend and frontend preview.
  * Returns { finalOrder: string[], newGroups: string[] } where newGroups lists
- * groupKeys present in the products but absent from productTypeOrder (R7.3).
+ * groupKeys present in the products but absent from productTypeOrder.
+ *
+ * Final layout, top to bottom:
+ *   1. known groups in productTypeOrder, inventory desc within each
+ *   2. low-stock bucket (totalInventory <= threshold), inventory desc
+ *   3. NEW groups (not in productTypeOrder) at the very bottom, whole —
+ *      the threshold doesn't split them, since the entire category is
+ *      pending user review (they carry a "Nueva" badge in the panel until
+ *      the user positions them). Alphabetical between new groups.
  */
 export function sortCollection(products, productTypeOrder = [], stockThreshold = 0) {
+  const knownOrder = productTypeOrder.length ? productTypeOrder : [];
+  const knownIndex = new Map(knownOrder.map((t, i) => [t, i]));
+
+  const known = [];
+  const unknown = [];
+  for (const p of products) {
+    if (knownIndex.has(groupKey(p.productType))) known.push(p);
+    else unknown.push(p);
+  }
+
   const bottom = [];
   const main = [];
-  for (const p of products) {
+  for (const p of known) {
     if (isBelowThreshold(p, stockThreshold)) bottom.push(p);
     else main.push(p);
   }
-
-  const knownOrder = productTypeOrder.length ? productTypeOrder : [];
-  const knownIndex = new Map(knownOrder.map((t, i) => [t, i]));
 
   const groups = new Map();
   for (const p of main) {
@@ -46,14 +61,7 @@ export function sortCollection(products, productTypeOrder = [], stockThreshold =
     groups.get(key).push(p);
   }
 
-  const knownGroupKeys = [...groups.keys()].filter((k) => knownIndex.has(k));
-  const newGroupKeys = [...groups.keys()]
-    .filter((k) => !knownIndex.has(k))
-    .sort((a, b) => a.localeCompare(b));
-
-  knownGroupKeys.sort((a, b) => knownIndex.get(a) - knownIndex.get(b));
-
-  const orderedGroupKeys = [...knownGroupKeys, ...newGroupKeys];
+  const orderedGroupKeys = [...groups.keys()].sort((a, b) => knownIndex.get(a) - knownIndex.get(b));
 
   const mainOrdered = [];
   for (const key of orderedGroupKeys) {
@@ -63,7 +71,21 @@ export function sortCollection(products, productTypeOrder = [], stockThreshold =
 
   const bottomOrdered = bottom.slice().sort(byInventoryDescThenTitle);
 
-  const finalOrder = [...mainOrdered, ...bottomOrdered].map((p) => p.id);
+  const newGroupsMap = new Map();
+  for (const p of unknown) {
+    const key = groupKey(p.productType);
+    if (!newGroupsMap.has(key)) newGroupsMap.set(key, []);
+    newGroupsMap.get(key).push(p);
+  }
+  const newGroupKeys = [...newGroupsMap.keys()].sort((a, b) => a.localeCompare(b));
+
+  const newOrdered = [];
+  for (const key of newGroupKeys) {
+    const groupProducts = newGroupsMap.get(key).slice().sort(byInventoryDescThenTitle);
+    newOrdered.push(...groupProducts);
+  }
+
+  const finalOrder = [...mainOrdered, ...bottomOrdered, ...newOrdered].map((p) => p.id);
 
   return { finalOrder, newGroups: newGroupKeys };
 }

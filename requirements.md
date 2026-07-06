@@ -108,7 +108,7 @@ Criterios de aceptación:
    > `vercel.json`), que Vercel invoca automáticamente agregando `Authorization: Bearer
    > $CRON_SECRET` si existe una env var `CRON_SECRET` en el proyecto. El endpoint acepta ambos
    * esquemas (Bearer y `X-Cron-Secret`) para poder probarlo también a mano con `curl`.
-3. CUANDO en la corrida diaria aparece un `productType` nuevo que no estaba en el orden guardado, EL SISTEMA DEBE ubicarlo después de los grupos conocidos y registrar un aviso en el log (no debe fallar la corrida).
+3. CUANDO en la corrida diaria aparece un `productType` nuevo que no estaba en el orden guardado, EL SISTEMA DEBE ubicar sus productos al fondo absoluto de la colección (debajo incluso del fondo por stock bajo), registrar un aviso en el log, y marcar la categoría como "Nueva" en la automatización (ver R10.4) — no debe fallar la corrida.
 4. CUANDO una colección configurada dejó de estar en `MANUAL`, EL SISTEMA DEBE saltearla, registrar el error en el log y continuar con las demás.
 5. EL SISTEMA DEBE registrar en un log el resultado de cada colección procesada (éxito, cantidad, o error).
 
@@ -130,7 +130,16 @@ Criterios de aceptación:
 4. LA ejecución automática diaria (R7) DEBE recorrer todas las tiendas dadas de alta, no solo una. Un error en una tienda no debe impedir que se procesen las demás.
 5. EL SISTEMA NO DEBE devolver el `admin_token` de ninguna tienda en las respuestas de listado (`GET /api/stores`); esa lista es de solo lectura para elegir tienda, no para ver credenciales.
 
-## Fuera de alcance de esta versión
+### R10 — Automatizaciones guardadas
+
+**Historia:** Como usuario, quiero automatizar explícitamente el ordenado de una colección después de probarlo, y administrar mis automatizaciones desde una sección propia del panel.
+
+Criterios de aceptación:
+1. CUANDO un ordenado manual termina OK, EL SISTEMA DEBE ofrecer un botón "Automatizar ordenado" que, previa confirmación, guarde la configuración actual (colección, orden de categorías, umbral) y la habilite para la corrida diaria. Ordenar manualmente NO guarda nada por sí solo.
+2. EL SISTEMA DEBE mostrar una sección "Automatizaciones guardadas" con todas las automatizaciones de la tienda seleccionada y su configuración.
+3. EL SISTEMA DEBE permitir editar (orden de categorías por drag-and-drop y umbral) o eliminar una automatización en cualquier momento. Eliminar pide confirmación.
+4. CUANDO la corrida diaria detecta categorías nuevas (R7.3), EL SISTEMA DEBE marcarlas como "Nueva" en la automatización correspondiente, mostrarlas visiblemente diferenciadas, y notificar al usuario en el panel qué colecciones tienen categorías sin ubicar.
+5. CUANDO el usuario clickea el badge "Nueva" de una categoría, EL FLAG DEBE desaparecer y la categoría DEBE pasar al final del orden guardado, desde donde puede reubicarse editando la automatización.
 
 - Docker, Kubernetes, Argo CD, GitOps: no aplican acá (ver `ms-autosort-by-stock/` para esa variante).
 - Alta disponibilidad / múltiples regiones: no hace falta para una tienda interna de bajo tráfico.
