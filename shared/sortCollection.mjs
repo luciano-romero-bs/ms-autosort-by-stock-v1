@@ -1,0 +1,71 @@
+const UNCATEGORIZED = "(sin categoría)";
+
+function groupKey(productType) {
+  return productType && productType.trim() !== "" ? productType : UNCATEGORIZED;
+}
+
+function byInventoryDescThenTitle(a, b) {
+  if (b.totalInventory !== a.totalInventory) return b.totalInventory - a.totalInventory;
+  return a.title.localeCompare(b.title);
+}
+
+function normalizeThreshold(stockThreshold) {
+  return Number.isFinite(stockThreshold) && stockThreshold > 0 ? stockThreshold : 0;
+}
+
+/**
+ * Whether a product falls to the bottom bucket for a given threshold.
+ * Exported so the frontend preview can tag "fondo" items with the exact
+ * same rule sortCollection uses internally (R4.2).
+ */
+export function isBelowThreshold(product, stockThreshold) {
+  const threshold = normalizeThreshold(stockThreshold);
+  return threshold > 0 && product.totalInventory <= threshold;
+}
+
+/**
+ * Pure sorting algorithm — no I/O. Shared between backend and frontend preview.
+ * Returns { finalOrder: string[], newGroups: string[] } where newGroups lists
+ * groupKeys present in the products but absent from productTypeOrder (R7.3).
+ */
+export function sortCollection(products, productTypeOrder = [], stockThreshold = 0) {
+  const bottom = [];
+  const main = [];
+  for (const p of products) {
+    if (isBelowThreshold(p, stockThreshold)) bottom.push(p);
+    else main.push(p);
+  }
+
+  const knownOrder = productTypeOrder.length ? productTypeOrder : [];
+  const knownIndex = new Map(knownOrder.map((t, i) => [t, i]));
+
+  const groups = new Map();
+  for (const p of main) {
+    const key = groupKey(p.productType);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  }
+
+  const knownGroupKeys = [...groups.keys()].filter((k) => knownIndex.has(k));
+  const newGroupKeys = [...groups.keys()]
+    .filter((k) => !knownIndex.has(k))
+    .sort((a, b) => a.localeCompare(b));
+
+  knownGroupKeys.sort((a, b) => knownIndex.get(a) - knownIndex.get(b));
+
+  const orderedGroupKeys = [...knownGroupKeys, ...newGroupKeys];
+
+  const mainOrdered = [];
+  for (const key of orderedGroupKeys) {
+    const groupProducts = groups.get(key).slice().sort(byInventoryDescThenTitle);
+    mainOrdered.push(...groupProducts);
+  }
+
+  const bottomOrdered = bottom.slice().sort(byInventoryDescThenTitle);
+
+  const finalOrder = [...mainOrdered, ...bottomOrdered].map((p) => p.id);
+
+  return { finalOrder, newGroups: newGroupKeys };
+}
+
+export { UNCATEGORIZED };
