@@ -29,3 +29,10 @@ create table if not exists collection_locks (
   collection_gid text primary key,
   locked_at timestamptz not null default now()
 );
+
+-- Only the backend touches these tables, using the service_role key (which
+-- bypasses RLS regardless). RLS is enabled anyway with no policies, so the
+-- anon/authenticated keys are denied by default if they're ever used.
+alter table collection_configs enable row level security;
+alter table run_logs enable row level security;
+alter table collection_locks enable row level security;
