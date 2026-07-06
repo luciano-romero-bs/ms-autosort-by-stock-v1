@@ -55,6 +55,42 @@ header {
   font-size: 0.85rem;
 }
 
+.store-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.store-selector label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  min-width: 240px;
+}
+
+.store-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem;
+  min-width: 280px;
+}
+
+.store-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
 .collection-loader {
   display: flex;
   gap: 0.5rem;

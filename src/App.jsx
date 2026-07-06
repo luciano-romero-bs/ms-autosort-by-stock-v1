@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { sortCollection, isBelowThreshold } from "../shared/sortCollection.mjs";
 import { isLoggedIn, logout, fetchCollectionProducts, fetchConfig, reorderCollection } from "./api.js";
 import Login from "./components/Login.jsx";
+import StoreSelector from "./components/StoreSelector.jsx";
 import CollectionLoader from "./components/CollectionLoader.jsx";
 import ProductTypeList from "./components/ProductTypeList.jsx";
 import ThresholdInput from "./components/ThresholdInput.jsx";
@@ -14,6 +15,7 @@ function toCollectionGid(id) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [storeSlug, setStoreSlug] = useState(null);
   const [collectionId, setCollectionId] = useState(null);
   const [collectionData, setCollectionData] = useState(null);
   const [productTypeOrder, setProductTypeOrder] = useState([]);
@@ -26,20 +28,29 @@ export default function App() {
   const [reorderResult, setReorderResult] = useState(null);
   const [reorderError, setReorderError] = useState(null);
 
+  function handleStoreChange(slug) {
+    setStoreSlug(slug);
+    setCollectionId(null);
+    setCollectionData(null);
+    setLoadError(null);
+    setReorderResult(null);
+    setReorderError(null);
+  }
+
   async function handleLoad(id) {
     setLoadingCollection(true);
     setLoadError(null);
     setReorderResult(null);
     setReorderError(null);
     try {
-      const data = await fetchCollectionProducts(id);
+      const data = await fetchCollectionProducts(storeSlug, id);
       setCollectionId(id);
       setCollectionData(data);
 
       let savedOrder = null;
       let savedThreshold = 0;
       try {
-        const { config } = await fetchConfig(toCollectionGid(id));
+        const { config } = await fetchConfig(storeSlug, toCollectionGid(id));
         savedOrder = config.product_type_order || [];
         savedThreshold = config.stock_threshold || 0;
       } catch {
@@ -81,7 +92,7 @@ export default function App() {
     setReorderResult(null);
     setReorderError(null);
     try {
-      const result = await reorderCollection(collectionId, { productTypeOrder, stockThreshold, save });
+      const result = await reorderCollection(storeSlug, collectionId, { productTypeOrder, stockThreshold, save });
       setReorderResult(result);
     } catch (err) {
       setReorderError(err.message);
@@ -108,8 +119,14 @@ export default function App() {
         </button>
       </header>
 
-      <CollectionLoader onLoad={handleLoad} loading={loadingCollection} />
-      {loadError && <p className="error-text">✖ {loadError}</p>}
+      <StoreSelector storeSlug={storeSlug} onChange={handleStoreChange} />
+
+      {storeSlug && (
+        <>
+          <CollectionLoader onLoad={handleLoad} loading={loadingCollection} />
+          {loadError && <p className="error-text">✖ {loadError}</p>}
+        </>
+      )}
 
       {collectionData && (
         <>

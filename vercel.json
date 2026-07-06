@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/collection/[id]/reorder.js": { "maxDuration": 60 },
+    "api/store/[storeSlug]/collection/[id]/reorder.js": { "maxDuration": 60 },
     "api/cron/run.js": { "maxDuration": 60 }
   },
   "crons": [{ "path": "/api/cron/run", "schedule": "0 6 * * *" }]

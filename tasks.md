@@ -69,6 +69,25 @@ probó contra Shopify/Supabase reales (requiere las credenciales reales del usua
   (panel) y una corrida forzada del cron vía `curl -H "X-Cron-Secret: ..." https://<proyecto>.vercel.app/api/cron/run`.
   — **pendiente: requiere la app ya deployada.**
 
+## Fase 6 — Multi-tienda
+
+- [x] 6.1 `supabase/migrations/0002_multi_store.sql`: tabla `stores`, y `store_id` en
+  `collection_configs` (unique compuesto), `run_logs` y `collection_locks` (PK compuesta). (R9.3)
+- [x] 6.2 `lib/env.js` deja de exigir `SHOPIFY_*`; `lib/supabaseClient.js` suma
+  `listStoresPublic`/`listStoresInternal`/`getStoreBySlug`/`upsertStore` y las funciones de
+  config/log ahora reciben `storeId`. (R8.1, R9.5)
+- [x] 6.3 `lib/shopifyClient.js` recibe un objeto `store` (`shopDomain`/`adminToken`/`apiVersion`)
+  en vez de leer env vars globales; `lib/lock.js` escopeado por `(storeId, collectionGid)`;
+  `lib/reorderService.js#runCronForAllEnabled` recorre todas las tiendas. (R9.2, R9.3, R9.4)
+- [x] 6.4 Rutas movidas a `api/store/[storeSlug]/collection/[id]/{products,reorder}.js` y
+  `api/store/[storeSlug]/config/[collectionGid].js`; nuevo `api/stores.js` (GET lista sin token,
+  POST alta/edición). `vercel.json` actualizado. (R9.1, R9.5)
+- [x] 6.5 Frontend: `StoreSelector.jsx` (selector + alta de tienda), `App.jsx` pasa `storeSlug` a
+  todas las llamadas, `api.js` con los nuevos endpoints. (R9.1, R9.2)
+- [x] 6.6 Tests actualizados a la nueva firma de `shopifyClient` (recibe `store` explícito).
+- [ ] 6.7 Correr `0002_multi_store.sql` en el Supabase real y dar de alta las tiendas desde el
+  panel. — **pendiente: lo hace el usuario.**
+
 ## Notas
 
 - El token de Shopify es offline y no expira; si aparece un 401, el mensaje indica regenerarlo

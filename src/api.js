@@ -48,17 +48,28 @@ async function apiFetch(path, options = {}) {
   return body;
 }
 
-export function fetchCollectionProducts(id) {
-  return apiFetch(`/api/collection/${id}/products`);
+export function fetchStores() {
+  return apiFetch(`/api/stores`);
 }
 
-export function reorderCollection(id, { productTypeOrder, stockThreshold, save }) {
-  return apiFetch(`/api/collection/${id}/reorder`, {
+export function createStore({ slug, displayName, shopDomain, adminToken, apiVersion }) {
+  return apiFetch(`/api/stores`, {
+    method: "POST",
+    body: JSON.stringify({ slug, displayName, shopDomain, adminToken, apiVersion }),
+  });
+}
+
+export function fetchCollectionProducts(storeSlug, id) {
+  return apiFetch(`/api/store/${storeSlug}/collection/${id}/products`);
+}
+
+export function reorderCollection(storeSlug, id, { productTypeOrder, stockThreshold, save }) {
+  return apiFetch(`/api/store/${storeSlug}/collection/${id}/reorder`, {
     method: "POST",
     body: JSON.stringify({ productTypeOrder, stockThreshold, save }),
   });
 }
 
-export function fetchConfig(collectionGid) {
-  return apiFetch(`/api/config/${encodeURIComponent(collectionGid)}`);
+export function fetchConfig(storeSlug, collectionGid) {
+  return apiFetch(`/api/store/${storeSlug}/config/${encodeURIComponent(collectionGid)}`);
 }

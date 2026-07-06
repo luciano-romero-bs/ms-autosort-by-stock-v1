@@ -1,9 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-process.env.SHOPIFY_SHOP = "test-shop.myshopify.com";
-process.env.SHOPIFY_ADMIN_TOKEN = "test-token";
-process.env.SHOPIFY_API_VERSION = "2025-10";
 process.env.SUPABASE_URL = "https://example.supabase.co";
 process.env.SUPABASE_SERVICE_KEY = "test-key";
 process.env.CRON_SECRET = "test-cron-secret";

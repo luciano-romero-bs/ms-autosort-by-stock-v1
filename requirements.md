@@ -7,15 +7,19 @@
 
 ## Contexto
 
-App interna para la tienda Shopify de Jack & Jones Uruguay (`jack-jones-dev.myshopify.com`).
-Reordena los productos dentro de una colección combinando dos criterios: primero agrupa por
-`productType` (en un orden que define el usuario) y dentro de cada grupo ordena por stock
-(`totalInventory`) descendente. Los productos con stock por debajo de un umbral configurable
+App para varias tiendas Shopify del grupo (ej. `jack-jones-dev.myshopify.com` y otras que se
+vayan sumando). Reordena los productos dentro de una colección combinando dos criterios: primero
+agrupa por `productType` (en un orden que define el usuario) y dentro de cada grupo ordena por
+stock (`totalInventory`) descendente. Los productos con stock por debajo de un umbral configurable
 se mandan al fondo de la colección, ignorando su grupo.
 
+Es **multi-tienda**: un solo deploy y un solo login manejan N tiendas, cada una con su propio
+dominio, token y configuración de colecciones (ver R9).
+
 Tiene dos modos de uso:
-- **Manual**: una interfaz web donde el usuario configura y ejecuta el reordenamiento.
-- **Automático**: una ejecución programada una vez al día que reaplica la configuración guardada.
+- **Manual**: una interfaz web donde el usuario elige la tienda, configura y ejecuta el reordenamiento.
+- **Automático**: una ejecución programada una vez al día que reaplica, para cada tienda, la
+  configuración guardada de sus colecciones habilitadas.
 
 ## Glosario
 
@@ -84,7 +88,8 @@ Criterios de aceptación:
    > el backend es un único proceso Node siempre corriendo. Acá el backend son funciones
    > serverless de Vercel que no comparten memoria entre invocaciones (y pueden correr en paralelo
    > en instancias distintas), así que el lock se implementa como una fila en una tabla de Supabase
-   > (`collection_locks`). Ver design.md sección 7.
+   > (`collection_locks`), con clave compuesta `(store_id, collection_gid)` para no bloquear una
+   > tienda por un reorder en curso en otra. Ver design.md sección 8.
 
 ### R6 — Guardar la configuración
 
@@ -110,9 +115,20 @@ Criterios de aceptación:
 ### R8 — Seguridad y credenciales
 
 Criterios de aceptación:
-1. EL SISTEMA DEBE leer el token de Shopify y el dominio de la tienda desde variables de entorno, nunca hardcodeados. En Vercel esto son "Environment Variables" del proyecto, no un `.env` commiteado.
-2. EL SISTEMA NO DEBE exponer el token al frontend; todas las llamadas a Shopify pasan por las funciones serverless.
-3. EL SISTEMA DEBE proteger el panel de configuración con al menos una autenticación básica (usuario/clave o secreto compartido).
+1. EL SISTEMA DEBE leer el token de cada tienda de Shopify y su dominio desde almacenamiento protegido (tabla `stores` en Supabase, accedida solo con la service role key), nunca hardcodeados en el código ni en un `.env` commiteado.
+2. EL SISTEMA NO DEBE exponer ningún `admin_token` al frontend, ni siquiera al listar tiendas; todas las llamadas a Shopify pasan por las funciones serverless.
+3. EL SISTEMA DEBE proteger el panel de configuración (incluyendo el alta de tiendas) con al menos una autenticación básica (usuario/clave o secreto compartido).
+
+### R9 — Multi-tienda
+
+**Historia:** Como usuario, quiero poder sumar tiendas de Shopify nuevas sin redeployar ni tocar variables de entorno, para operar sobre varias tiendas del grupo desde un solo panel.
+
+Criterios de aceptación:
+1. EL SISTEMA DEBE permitir dar de alta una tienda nueva (identificador corto, nombre para mostrar, dominio `.myshopify.com`, Admin API access token) desde el panel, sin requerir un nuevo deploy.
+2. EL SISTEMA DEBE mostrar un selector de tienda en el panel; toda acción posterior (cargar colección, previsualizar, reordenar, precargar config guardada) DEBE operar sobre la tienda seleccionada.
+3. LA configuración de colecciones, los logs de corrida, y el lock de serialización DEBEN estar aislados por tienda: dos tiendas distintas con una colección del mismo ID numérico NUNCA deben pisarse la configuración ni bloquearse mutuamente.
+4. LA ejecución automática diaria (R7) DEBE recorrer todas las tiendas dadas de alta, no solo una. Un error en una tienda no debe impedir que se procesen las demás.
+5. EL SISTEMA NO DEBE devolver el `admin_token` de ninguna tienda en las respuestas de listado (`GET /api/stores`); esa lista es de solo lectura para elegir tienda, no para ver credenciales.
 
 ## Fuera de alcance de esta versión
 

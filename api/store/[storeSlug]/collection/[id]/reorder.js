@@ -1,6 +1,7 @@
-import { toCollectionGid } from "../../../lib/shopifyClient.js";
-import { runReorder } from "../../../lib/reorderService.js";
-import { requireBasicAuth } from "../../../lib/auth.js";
+import { toCollectionGid } from "../../../../../lib/shopifyClient.js";
+import { runReorder } from "../../../../../lib/reorderService.js";
+import { getStoreBySlug } from "../../../../../lib/supabaseClient.js";
+import { requireBasicAuth } from "../../../../../lib/auth.js";
 
 function isNumericId(value) {
   return /^\d+$/.test(value ?? "");
@@ -10,7 +11,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
   if (!requireBasicAuth(req, res)) return;
 
-  const { id } = req.query;
+  const { storeSlug, id } = req.query;
   if (!isNumericId(id)) {
     return res.status(400).json({ ok: false, error: "Collection ID inválido: debe ser numérico." });
   }
@@ -26,10 +27,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "stockThreshold debe ser un entero >= 0." });
   }
 
-  const collectionGid = toCollectionGid(id);
-
   try {
+    const storeRow = await getStoreBySlug(storeSlug);
+    if (!storeRow) return res.status(404).json({ ok: false, error: `No existe la tienda "${storeSlug}".` });
+    const store = {
+      id: storeRow.id,
+      shopDomain: storeRow.shop_domain,
+      adminToken: storeRow.admin_token,
+      apiVersion: storeRow.api_version,
+    };
+
+    const collectionGid = toCollectionGid(id);
     const result = await runReorder({
+      store,
       collectionGid,
       productTypeOrder,
       stockThreshold: threshold,
