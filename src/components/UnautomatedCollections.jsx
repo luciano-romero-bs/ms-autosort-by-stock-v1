@@ -159,8 +159,8 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
         </button>
       </div>
 
-      {notice && <p className="success-text">{notice}</p>}
-      {error && <p className="error-text">✖ {error}</p>}
+      {notice && <p className="success-text" role="status">{notice}</p>}
+      {error && <p className="error-text" role="alert">✖ {error}</p>}
 
       {loaded && collections.length === 0 && !error && (
         <p className="empty-hint">

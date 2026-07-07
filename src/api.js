@@ -59,6 +59,17 @@ export function createStore({ slug, displayName, shopDomain, adminToken, apiVers
   });
 }
 
+export function updateStore(storeSlug, { displayName, shopDomain, adminToken, apiVersion }) {
+  return apiFetch(`/api/store/${storeSlug}`, {
+    method: "PUT",
+    body: JSON.stringify({ displayName, shopDomain, adminToken, apiVersion }),
+  });
+}
+
+export function deleteStore(storeSlug) {
+  return apiFetch(`/api/store/${storeSlug}`, { method: "DELETE" });
+}
+
 export function fetchCollectionProducts(storeSlug, id) {
   return apiFetch(`/api/store/${storeSlug}/collection/${id}/products`);
 }

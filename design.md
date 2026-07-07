@@ -185,7 +185,9 @@ entre colecciones, ahora también entre tiendas).
 | Ruta | Archivo | Auth |
 |---|---|---|
 | `GET /api/stores` | `api/stores.js` | Basic auth. Lista tiendas (sin `admin_token`) |
-| `POST /api/stores` | `api/stores.js` | Basic auth. Alta/edición de una tienda (upsert por `slug`) |
+| `POST /api/stores` | `api/stores.js` | Basic auth. Alta de una tienda nueva (upsert por `slug`) |
+| `PUT /api/store/:storeSlug` | `api/store/[storeSlug]/index.js` | Basic auth. Edita nombre/dominio/versión de API; `adminToken` opcional (vacío = no lo toca) |
+| `DELETE /api/store/:storeSlug` | `api/store/[storeSlug]/index.js` | Basic auth. Elimina la tienda y todo lo que depende de ella (automatizaciones, logs, locks, cache de colecciones — `on delete cascade`) |
 | `GET /api/store/:storeSlug/collection/:id/products` | `api/store/[storeSlug]/collection/[id]/products.js` | Basic auth |
 | `POST /api/store/:storeSlug/collection/:id/reorder` | `api/store/[storeSlug]/collection/[id]/reorder.js` | Basic auth |
 | `GET /api/configs` | `api/configs.js` | Basic auth. Sin filtrar por tienda (usado solo como ping de login) |

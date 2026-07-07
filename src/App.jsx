@@ -208,7 +208,7 @@ export default function App() {
       {storeSlug && (
         <>
           <CollectionLoader onLoad={handleLoad} loading={loadingCollection} presetId={presetCollectionId} />
-          {loadError && <p className="error-text">✖ {loadError}</p>}
+          {loadError && <p className="error-text" role="alert">✖ {loadError}</p>}
         </>
       )}
 
@@ -216,7 +216,7 @@ export default function App() {
         <>
           <h2>{collectionData.collectionTitle}</h2>
           {!collectionData.isManual && (
-            <p className="warning-text">
+            <p className="warning-text" role="status">
               ⚠ Esta colección tiene sortOrder <code>{collectionData.sortOrder}</code>. Cambiala a
               "Manual" en el admin de Shopify antes de poder reordenar.
             </p>
@@ -247,7 +247,7 @@ export default function App() {
             {reorderResult && (
               <div className="automate-action">
                 {automateDone ? (
-                  <p className="success-text">
+                  <p className="success-text" role="status">
                     ✔ Automatización guardada — la corrida diaria va a mantener este orden.
                   </p>
                 ) : (
@@ -259,7 +259,7 @@ export default function App() {
                         : "Automatizar ordenado"}
                   </button>
                 )}
-                {automateError && <p className="error-text">✖ {automateError}</p>}
+                {automateError && <p className="error-text" role="alert">✖ {automateError}</p>}
               </div>
             )}
           </section>

@@ -33,7 +33,7 @@ export default function Login({ onLoggedIn }) {
           Clave
           <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} required />
         </label>
-        {error && <p className="error-text">{error}</p>}
+        {error && <p className="error-text" role="alert">{error}</p>}
         <button type="submit" disabled={loading}>
           {loading ? "Ingresando..." : "Ingresar"}
         </button>

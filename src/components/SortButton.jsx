@@ -5,11 +5,11 @@ export default function SortButton({ onClick, loading, result, error, disabled }
         {loading ? "Ordenando..." : "Ordenar colección"}
       </button>
       {result && (
-        <p className="success-text">
+        <p className="success-text" role="status">
           ✔ Listo — se reordenaron {result.productsReordered} productos.
         </p>
       )}
-      {error && <p className="error-text">✖ {error}</p>}
+      {error && <p className="error-text" role="alert">✖ {error}</p>}
     </div>
   );
 }

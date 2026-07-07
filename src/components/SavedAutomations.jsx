@@ -132,7 +132,7 @@ function AutomationCard({ storeSlug, config, onReload }) {
 
       {visibleNewTypes.length > 0 && (
         <div className="new-types">
-          <p className="warning-text">
+          <p className="warning-text" role="status">
             ⚠ Categorías nuevas detectadas por la corrida automática — están al fondo de la colección
             hasta que las ubiques. Tocá "Nueva" para aceptarlas (pasan al final del orden, después las
             podés arrastrar donde quieras):
@@ -156,7 +156,7 @@ function AutomationCard({ storeSlug, config, onReload }) {
         </div>
       )}
 
-      {error && <p className="error-text">✖ {error}</p>}
+      {error && <p className="error-text" role="alert">✖ {error}</p>}
     </li>
   );
 }
@@ -169,7 +169,7 @@ export default function SavedAutomations({ storeSlug, configs, onReload }) {
       <h3>Automatizaciones guardadas</h3>
 
       {withNewTypes.length > 0 && (
-        <p className="warning-text">
+        <p className="warning-text" role="status">
           ⚠ Hay categorías nuevas sin ubicar en:{" "}
           {withNewTypes.map((c) => displayName(c)).join(", ")}.
         </p>

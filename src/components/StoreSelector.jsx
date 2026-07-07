@@ -1,16 +1,28 @@
 import { useEffect, useState } from "react";
-import { fetchStores, createStore } from "../api.js";
+import { fetchStores, createStore, updateStore, deleteStore } from "../api.js";
 
 const EMPTY_FORM = { slug: "", displayName: "", shopDomain: "", adminToken: "", apiVersion: "2025-10" };
+const EMPTY_EDIT_FORM = { displayName: "", shopDomain: "", adminToken: "", apiVersion: "2025-10" };
 
 export default function StoreSelector({ storeSlug, onChange }) {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState(null);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+
+  const currentStore = stores.find((s) => s.slug === storeSlug) || null;
 
   async function load(selectSlug) {
     setLoading(true);
@@ -19,7 +31,12 @@ export default function StoreSelector({ storeSlug, onChange }) {
       const { stores } = await fetchStores();
       setStores(stores);
       if (selectSlug) onChange(selectSlug);
-      else if (!storeSlug && stores.length) onChange(stores[0].slug);
+      else if (storeSlug && !stores.some((s) => s.slug === storeSlug)) {
+        // The previously selected store is gone (e.g. just deleted it).
+        onChange(stores.length ? stores[0].slug : null);
+      } else if (!storeSlug && stores.length) {
+        onChange(stores[0].slug);
+      }
     } catch (err) {
       setLoadError(err.message);
     } finally {
@@ -48,13 +65,65 @@ export default function StoreSelector({ storeSlug, onChange }) {
     }
   }
 
+  function startEditing() {
+    if (!currentStore) return;
+    setEditForm({
+      displayName: currentStore.display_name,
+      shopDomain: currentStore.shop_domain,
+      adminToken: "",
+      apiVersion: currentStore.api_version || "2025-10",
+    });
+    setEditError(null);
+    setEditing(true);
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await updateStore(storeSlug, editForm);
+      setEditing(false);
+      await load(storeSlug);
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!currentStore) return;
+    const ok = window.confirm(
+      `¿Eliminar la tienda "${currentStore.display_name}"?\n\n` +
+        `Esto borra también todas sus automatizaciones, logs y colecciones sincronizadas. ` +
+        `No se puede deshacer.`
+    );
+    if (!ok) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteStore(storeSlug);
+      setEditing(false);
+      await load();
+    } catch (err) {
+      setDeleteError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <section className="store-selector">
       <label>
         Tienda
         <select
           value={storeSlug || ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            setEditing(false);
+            onChange(e.target.value);
+          }}
           disabled={loading || !stores.length}
         >
           {!stores.length && <option value="">(sin tiendas cargadas)</option>}
@@ -65,11 +134,24 @@ export default function StoreSelector({ storeSlug, onChange }) {
           ))}
         </select>
       </label>
-      {loadError && <p className="error-text">✖ {loadError}</p>}
+      {loadError && <p className="error-text" role="alert">✖ {loadError}</p>}
+      {deleteError && <p className="error-text" role="alert">✖ {deleteError}</p>}
 
-      <button type="button" className="link-button" onClick={() => setShowForm((v) => !v)}>
-        {showForm ? "Cancelar" : "+ Agregar tienda"}
-      </button>
+      <div className="store-selector-actions">
+        <button type="button" className="link-button" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? "Cancelar" : "+ Agregar tienda"}
+        </button>
+        {currentStore && !editing && (
+          <>
+            <button type="button" className="link-button" onClick={startEditing}>
+              Editar tienda
+            </button>
+            <button type="button" className="link-button danger-link" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Eliminando..." : "Eliminar tienda"}
+            </button>
+          </>
+        )}
+      </div>
 
       {showForm && (
         <form className="store-form" onSubmit={handleAddStore}>
@@ -109,10 +191,58 @@ export default function StoreSelector({ storeSlug, onChange }) {
               required
             />
           </label>
-          {saveError && <p className="error-text">✖ {saveError}</p>}
-          <button type="submit" disabled={saving}>
+          {saveError && <p className="error-text" role="alert">✖ {saveError}</p>}
+          <button type="submit" className="primary" disabled={saving}>
             {saving ? "Guardando..." : "Guardar tienda"}
           </button>
+        </form>
+      )}
+
+      {editing && currentStore && (
+        <form className="store-form" onSubmit={handleEditSubmit}>
+          <h4>Editar "{currentStore.display_name}"</h4>
+          <label>
+            Nombre para mostrar
+            <input
+              value={editForm.displayName}
+              onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Dominio myshopify.com
+            <input
+              value={editForm.shopDomain}
+              onChange={(e) => setEditForm({ ...editForm, shopDomain: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Versión de API
+            <input
+              value={editForm.apiVersion}
+              onChange={(e) => setEditForm({ ...editForm, apiVersion: e.target.value })}
+              placeholder="2025-10"
+            />
+          </label>
+          <label>
+            Admin API access token
+            <input
+              type="password"
+              value={editForm.adminToken}
+              onChange={(e) => setEditForm({ ...editForm, adminToken: e.target.value })}
+              placeholder="Dejar en blanco para no cambiarlo"
+            />
+          </label>
+          {editError && <p className="error-text" role="alert">✖ {editError}</p>}
+          <div className="automation-actions">
+            <button type="submit" className="primary" disabled={editSaving}>
+              {editSaving ? "Guardando..." : "Guardar cambios"}
+            </button>
+            <button type="button" onClick={() => setEditing(false)} disabled={editSaving}>
+              Cancelar
+            </button>
+          </div>
         </form>
       )}
     </section>
