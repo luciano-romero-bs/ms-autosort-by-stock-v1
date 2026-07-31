@@ -3,6 +3,7 @@
     "api/store/[storeSlug]/collection/[id]/reorder.js": { "maxDuration": 60 },
     "api/store/[storeSlug]/collection/[id]/products.js": { "maxDuration": 60 },
     "api/store/[storeSlug]/collections/index.js": { "maxDuration": 60 },
+    "api/store/[storeSlug]/diagnose.js": { "maxDuration": 60 },
     "api/cron/run.js": { "maxDuration": 60 }
   },
   "crons": [{ "path": "/api/cron/run", "schedule": "0 6 * * *" }]
