@@ -52,8 +52,11 @@ export default async function handler(req, res) {
 
   const { storeSlug, collectionId, title, apiVersion } = req.query;
 
-  if (apiVersion && !/^\d{4}-\d{2}$|^unstable$/.test(apiVersion)) {
-    return res.status(400).json({ ok: false, error: "apiVersion debe ser YYYY-MM o 'unstable'." });
+  // Se aceptan handles arbitrarios a propósito: sirve para comprobar que
+  // Shopify, ante un handle desconocido, cae a la versión soportada más vieja
+  // en vez de fallar (mirá el total que devuelve, no si responde).
+  if (apiVersion && !/^[a-z0-9-]{1,20}$/.test(apiVersion)) {
+    return res.status(400).json({ ok: false, error: "apiVersion inválida." });
   }
 
   if (collectionId && !/^\d+$/.test(collectionId)) {
