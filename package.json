@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "cron:local": "node scripts/run-cron-locally.js"
+    "cron:local": "node scripts/run-cron-locally.js",
+    "diagnose": "node --env-file=.env.local scripts/diagnose-collections.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

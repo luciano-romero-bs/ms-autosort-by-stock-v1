@@ -18,6 +18,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ ok: false, error: `No existe la tienda "${req.query.storeSlug}".` });
     }
 
+    // Cuántas devolvió Shopify en este sync. Se reporta aparte del largo de
+    // `collections` (que sale de Supabase, después del upsert y la poda) para
+    // poder distinguir "Shopify no la trajo" de "se perdió al guardarla".
+    let fetchedFromShopify = null;
     if (req.method === "POST") {
       const store = {
         shopDomain: storeRow.shop_domain,
@@ -25,11 +29,12 @@ export default async function handler(req, res) {
         apiVersion: storeRow.api_version,
       };
       const fresh = await listCollections(store);
+      fetchedFromShopify = fresh.length;
       await replaceStoreCollections(storeRow.id, fresh);
     }
 
     const collections = await listStoreCollections(storeRow.id);
-    res.status(200).json({ ok: true, collections });
+    res.status(200).json({ ok: true, collections, fetchedFromShopify });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
