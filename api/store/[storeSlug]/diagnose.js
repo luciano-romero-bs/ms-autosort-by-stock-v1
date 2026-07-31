@@ -25,6 +25,18 @@ const ONE_COLLECTION_QUERY = `
     collection(id: $id) { id title sortOrder updatedAt productsCount { count } }
   }
 `;
+// Total autoritativo según Shopify. Si no coincide con el largo del listado,
+// el problema está en la conexión `collections`, no en los permisos.
+const COUNT_QUERY = `query { collectionsCount { count precision } }`;
+// Búsqueda del lado de Shopify (no filtrando en JS): si la colección aparece
+// acá con otro ID, el número de la URL del admin no es el GID que hay que usar.
+const SEARCH_QUERY = `
+  query($q: String!) {
+    collections(first: 20, query: $q) { nodes { id title updatedAt } }
+  }
+`;
+// ¿El GID resuelve a algo, sea del tipo que sea?
+const NODE_QUERY = `query($id: ID!) { node(id: $id) { id __typename } }`;
 
 async function attempt(fn) {
   try {
@@ -102,12 +114,30 @@ export default async function handler(req, res) {
     out.idMasAltoQueVeShopify = ids.length ? String(Math.max(...ids)) : null;
   }
 
-  // Búsqueda por título: detecta que la colección exista pero con otro ID.
-  if (title && full.ok) {
-    const needle = title.toLowerCase();
-    out.porTitulo = full.value
-      .filter((c) => c.title.toLowerCase().includes(needle))
-      .map((c) => ({ id: c.id.split("/").pop(), title: c.title }));
+  // Total autoritativo. Si Shopify dice 122 y el listado trajo 121, el que
+  // está fallando es el listado y no hay problema de permisos.
+  const count = await attempt(() => shopifyGraphQL(COUNT_QUERY, {}, store));
+  out.totales.segunCollectionsCount = count.ok
+    ? { count: count.value.collectionsCount?.count, precision: count.value.collectionsCount?.precision }
+    : { error: count.error };
+
+  // Búsqueda por título: en el listado que ya trajimos y, por separado, contra
+  // el buscador de Shopify (que usa otro índice).
+  if (title) {
+    if (full.ok) {
+      const needle = title.toLowerCase();
+      out.porTituloEnElListado = full.value
+        .filter((c) => c.title.toLowerCase().includes(needle))
+        .map((c) => ({ id: c.id.split("/").pop(), title: c.title }));
+    }
+    const search = await attempt(() => shopifyGraphQL(SEARCH_QUERY, { q: title }, store));
+    out.porTituloSegunShopify = search.ok
+      ? search.value.collections.nodes.map((c) => ({
+          id: c.id.split("/").pop(),
+          title: c.title,
+          updatedAt: c.updatedAt,
+        }))
+      : { error: search.error };
   }
 
   // La colección puntual, por consulta directa (no pasa por ningún listado).
@@ -129,6 +159,15 @@ export default async function handler(req, res) {
         enElListado: full.ok ? full.value.some((x) => x.id === c.id) : null,
       };
     }
+
+    // ¿El GID resuelve a algo? Si `node` devuelve un __typename distinto de
+    // Collection, el número de la URL no es el de una colección.
+    const node = await attempt(() => shopifyGraphQL(NODE_QUERY, { id: toCollectionGid(collectionId) }, store));
+    out.coleccionBuscada.node = node.ok
+      ? node.value.node
+        ? { tipo: node.value.node.__typename }
+        : "null (el GID no resuelve a nada)"
+      : { error: node.error };
   }
 
   res.status(200).json(out);
