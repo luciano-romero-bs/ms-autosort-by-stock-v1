@@ -95,7 +95,7 @@ Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.
 | `display_name` | text | Nombre mostrado en el selector del panel, ej. "Jack & Jones Dev" |
 | `shop_domain` | text (unique) | ej. `jack-jones-dev.myshopify.com` |
 | `admin_token` | text | Admin API access token de esa tienda. Nunca se devuelve al frontend (ver sección 5) |
-| `api_version` | text | ej. `2025-10` |
+| `api_version` | text | ej. `2026-07`. Una versión vieja **no ve** las colecciones creadas con el admin nuevo: no da error, simplemente no existen para esa versión (ni por id, ni en el listado, ni en `collectionsCount`) |
 | `created_at` | timestamptz | |
 
 ### `collection_configs`
@@ -172,7 +172,7 @@ o con la tabla editor de Supabase, si se prefiere no tipear el token en el naveg
 
 ```sql
 insert into stores (slug, display_name, shop_domain, admin_token, api_version)
-values ('jack-jones-dev', 'Jack & Jones Dev', 'jack-jones-dev.myshopify.com', 'shpca_...', '2025-10');
+values ('jack-jones-dev', 'Jack & Jones Dev', 'jack-jones-dev.myshopify.com', 'shpca_...', '2026-07');
 ```
 
 Cada tienda es completamente independiente: su propia config de colecciones, sus propios logs,

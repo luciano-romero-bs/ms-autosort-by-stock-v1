@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { fetchStores, createStore, updateStore, deleteStore } from "../api.js";
 
-const EMPTY_FORM = { slug: "", displayName: "", shopDomain: "", adminToken: "", apiVersion: "2025-10" };
-const EMPTY_EDIT_FORM = { displayName: "", shopDomain: "", adminToken: "", apiVersion: "2025-10" };
+// Ver lib/supabaseClient.js#DEFAULT_API_VERSION: una versión vieja no ve las
+// colecciones creadas con el admin nuevo, así que conviene no quedarse atrás.
+const DEFAULT_API_VERSION = "2026-07";
+
+const EMPTY_FORM = { slug: "", displayName: "", shopDomain: "", adminToken: "", apiVersion: DEFAULT_API_VERSION };
+const EMPTY_EDIT_FORM = { displayName: "", shopDomain: "", adminToken: "", apiVersion: DEFAULT_API_VERSION };
 
 export default function StoreSelector({ storeSlug, onChange }) {
   const [stores, setStores] = useState([]);
@@ -71,7 +75,7 @@ export default function StoreSelector({ storeSlug, onChange }) {
       displayName: currentStore.display_name,
       shopDomain: currentStore.shop_domain,
       adminToken: "",
-      apiVersion: currentStore.api_version || "2025-10",
+      apiVersion: currentStore.api_version || DEFAULT_API_VERSION,
     });
     setEditError(null);
     setEditing(true);
@@ -222,7 +226,7 @@ export default function StoreSelector({ storeSlug, onChange }) {
             <input
               value={editForm.apiVersion}
               onChange={(e) => setEditForm({ ...editForm, apiVersion: e.target.value })}
-              placeholder="2025-10"
+              placeholder={DEFAULT_API_VERSION}
             />
           </label>
           <label>
