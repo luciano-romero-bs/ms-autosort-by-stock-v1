@@ -50,7 +50,11 @@ export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ ok: false, error: "Method not allowed" });
   if (!requireBasicAuth(req, res)) return;
 
-  const { storeSlug, collectionId, title } = req.query;
+  const { storeSlug, collectionId, title, apiVersion } = req.query;
+
+  if (apiVersion && !/^\d{4}-\d{2}$|^unstable$/.test(apiVersion)) {
+    return res.status(400).json({ ok: false, error: "apiVersion debe ser YYYY-MM o 'unstable'." });
+  }
 
   if (collectionId && !/^\d+$/.test(collectionId)) {
     return res.status(400).json({ ok: false, error: "collectionId debe ser numérico." });
@@ -59,10 +63,13 @@ export default async function handler(req, res) {
   const storeRow = await getStoreBySlug(storeSlug);
   if (!storeRow) return res.status(404).json({ ok: false, error: `No existe la tienda "${storeSlug}".` });
 
+  // ?apiVersion= permite probar otra versión sin tocar la config de la tienda:
+  // una colección creada con features nuevas puede no ser representable (y por
+  // lo tanto no existir) en una versión de API vieja.
   const store = {
     shopDomain: storeRow.shop_domain,
     adminToken: storeRow.admin_token,
-    apiVersion: storeRow.api_version,
+    apiVersion: apiVersion || storeRow.api_version,
   };
 
   const out = {
@@ -70,11 +77,24 @@ export default async function handler(req, res) {
     configurado: {
       slug: storeRow.slug,
       shopDomain: store.shopDomain,
-      apiVersion: store.apiVersion,
+      apiVersionGuardada: storeRow.api_version,
+      apiVersionUsadaEnEstaConsulta: store.apiVersion,
       tokenPrefijo: store.adminToken ? `${store.adminToken.slice(0, 8)}…` : null,
       tokenLargo: store.adminToken?.length ?? 0,
     },
   };
+
+  // Qué versiones soporta hoy esta tienda, según la propia Shopify.
+  const versions = await attempt(async () => {
+    const resp = await fetch(`https://${store.shopDomain}/admin/api/api_versions.json`, {
+      headers: { "X-Shopify-Access-Token": store.adminToken },
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.json();
+  });
+  out.versionesSoportadas = versions.ok
+    ? (versions.value.api_versions ?? []).filter((v) => v.supported).map((v) => v.handle)
+    : { error: versions.error };
 
   // ¿A qué tienda pertenece el token de verdad?
   const shop = await attempt(() => shopifyGraphQL(SHOP_QUERY, {}, store));
