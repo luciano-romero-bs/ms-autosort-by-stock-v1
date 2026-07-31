@@ -1,6 +1,6 @@
 import { shopifyGraphQL, listCollections, toCollectionGid } from "../../../lib/shopifyClient.js";
 import { getStoreBySlug, listStoreCollections } from "../../../lib/supabaseClient.js";
-import { buildStore } from "../../../lib/apiVersion.js";
+import { buildStore, fetchSupportedVersions } from "../../../lib/apiVersion.js";
 import { requireBasicAuth } from "../../../lib/auth.js";
 
 // GET /api/store/:storeSlug/diagnose?collectionId=123&title=remeras
@@ -89,22 +89,8 @@ export default async function handler(req, res) {
   };
 
   // Qué versiones soporta hoy esta tienda, según la propia Shopify.
-  const versions = await attempt(async () => {
-    // La ruta sin versionar devuelve 404 en tiendas nuevas; se prueban las dos.
-    const paths = [`/admin/api/${store.apiVersion}/api_versions.json`, "/admin/api/api_versions.json"];
-    let lastStatus = null;
-    for (const path of paths) {
-      const resp = await fetch(`https://${store.shopDomain}${path}`, {
-        headers: { "X-Shopify-Access-Token": store.adminToken },
-      });
-      if (resp.ok) return resp.json();
-      lastStatus = resp.status;
-    }
-    throw new Error(`HTTP ${lastStatus}`);
-  });
-  out.versionesSoportadas = versions.ok
-    ? (versions.value.api_versions ?? []).filter((v) => v.supported).map((v) => v.handle)
-    : { error: versions.error };
+  const versions = await attempt(() => fetchSupportedVersions(store));
+  out.versionesSoportadas = versions.ok ? versions.value : { error: versions.error };
 
   // ¿A qué tienda pertenece el token de verdad?
   const shop = await attempt(() => shopifyGraphQL(SHOP_QUERY, {}, store));

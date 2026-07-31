@@ -21,6 +21,7 @@ test("pickNewestStable returns null when there's nothing usable", () => {
 });
 
 // Cada test usa un shopDomain distinto para no cruzarse con el cache de 6hs.
+// Las respuestas imitan a shopifyGraphQL: status + body con `data`.
 function stubFetch(t, handler) {
   const original = globalThis.fetch;
   globalThis.fetch = handler;
@@ -29,46 +30,46 @@ function stubFetch(t, handler) {
   });
 }
 
+function graphqlReply(publicApiVersions) {
+  return async () => ({ status: 200, json: async () => ({ data: { publicApiVersions } }) });
+}
+
 test("resolveApiVersion picks the newest supported version Shopify reports", async (t) => {
-  stubFetch(t, async () => ({
-    ok: true,
-    json: async () => ({
-      api_versions: [
-        { handle: "2025-10", supported: true },
-        { handle: "2026-07", supported: true },
-        { handle: "unstable", supported: true },
-      ],
-    }),
-  }));
+  stubFetch(
+    t,
+    graphqlReply([
+      { handle: "2025-10", supported: true },
+      { handle: "2026-07", supported: true },
+      { handle: "unstable", supported: true },
+    ])
+  );
 
   assert.equal(await resolveApiVersion("shop-a.myshopify.com", "token", "2025-10"), "2026-07");
 });
 
 test("resolveApiVersion ignores versions Shopify no longer supports", async (t) => {
-  stubFetch(t, async () => ({
-    ok: true,
-    json: async () => ({
-      api_versions: [
-        { handle: "2026-04", supported: true },
-        { handle: "2027-01", supported: false },
-      ],
-    }),
-  }));
+  stubFetch(
+    t,
+    graphqlReply([
+      { handle: "2026-04", supported: true },
+      { handle: "2027-01", supported: false },
+    ])
+  );
 
   assert.equal(await resolveApiVersion("shop-b.myshopify.com", "token", "2025-10"), "2026-04");
 });
 
 test("resolveApiVersion never goes below the configured floor", async (t) => {
-  stubFetch(t, async () => ({
-    ok: true,
-    json: async () => ({ api_versions: [{ handle: "2024-01", supported: true }] }),
-  }));
+  stubFetch(t, graphqlReply([{ handle: "2024-01", supported: true }]));
 
   assert.equal(await resolveApiVersion("shop-c.myshopify.com", "token", "2026-07"), "2026-07");
 });
 
-test("resolveApiVersion falls back to the stored version when Shopify won't say", async (t) => {
-  stubFetch(t, async () => ({ ok: false, status: 404 }));
+test("resolveApiVersion falls back to the stored version when the query errors", async (t) => {
+  stubFetch(t, async () => ({
+    status: 200,
+    json: async () => ({ errors: [{ message: "Field 'publicApiVersions' doesn't exist" }] }),
+  }));
 
   assert.equal(await resolveApiVersion("shop-d.myshopify.com", "token", "2026-04"), "2026-04");
 });
@@ -83,9 +84,10 @@ test("resolveApiVersion falls back to the default when there's no stored version
 
 test("resolveApiVersion caches per shop instead of asking on every call", async (t) => {
   let calls = 0;
-  stubFetch(t, async () => {
+  const reply = graphqlReply([{ handle: "2026-07", supported: true }]);
+  stubFetch(t, async (...args) => {
     calls += 1;
-    return { ok: true, json: async () => ({ api_versions: [{ handle: "2026-07", supported: true }] }) };
+    return reply(...args);
   });
 
   await resolveApiVersion("shop-f.myshopify.com", "token", "2025-10");
