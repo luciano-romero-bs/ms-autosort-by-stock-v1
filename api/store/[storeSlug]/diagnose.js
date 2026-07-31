@@ -1,5 +1,6 @@
 import { shopifyGraphQL, listCollections, toCollectionGid } from "../../../lib/shopifyClient.js";
 import { getStoreBySlug, listStoreCollections } from "../../../lib/supabaseClient.js";
+import { buildStore } from "../../../lib/apiVersion.js";
 import { requireBasicAuth } from "../../../lib/auth.js";
 
 // GET /api/store/:storeSlug/diagnose?collectionId=123&title=remeras
@@ -66,14 +67,13 @@ export default async function handler(req, res) {
   const storeRow = await getStoreBySlug(storeSlug);
   if (!storeRow) return res.status(404).json({ ok: false, error: `No existe la tienda "${storeSlug}".` });
 
-  // ?apiVersion= permite probar otra versión sin tocar la config de la tienda:
-  // una colección creada con features nuevas puede no ser representable (y por
-  // lo tanto no existir) en una versión de API vieja.
-  const store = {
-    shopDomain: storeRow.shop_domain,
-    adminToken: storeRow.admin_token,
-    apiVersion: apiVersion || storeRow.api_version,
-  };
+  // Sin ?apiVersion= se usa la que resuelve la app (la estable más nueva que
+  // soporta la tienda). Con el parámetro se fuerza otra, para comparar: una
+  // colección creada con features nuevas puede no ser representable — y por lo
+  // tanto no existir — en una versión vieja.
+  const store = apiVersion
+    ? { shopDomain: storeRow.shop_domain, adminToken: storeRow.admin_token, apiVersion }
+    : await buildStore(storeRow);
 
   const out = {
     ok: true,
@@ -82,6 +82,7 @@ export default async function handler(req, res) {
       shopDomain: store.shopDomain,
       apiVersionGuardada: storeRow.api_version,
       apiVersionUsadaEnEstaConsulta: store.apiVersion,
+      apiVersionForzadaPorParametro: Boolean(apiVersion),
       tokenPrefijo: store.adminToken ? `${store.adminToken.slice(0, 8)}…` : null,
       tokenLargo: store.adminToken?.length ?? 0,
     },

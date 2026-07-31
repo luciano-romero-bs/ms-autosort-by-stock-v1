@@ -64,12 +64,14 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
     setError(null);
     setNotice(null);
     try {
-      const { collections, fetchedFromShopify } = await syncStoreCollections(storeSlug);
+      const { collections, fetchedFromShopify, apiVersionUsada } = await syncStoreCollections(storeSlug);
       setCollections(collections);
       setNotice(
         fetchedFromShopify == null
           ? `✔ Sincronizado: ${collections.length} colecciones en la tienda.`
-          : `✔ Sincronizado: Shopify devolvió ${fetchedFromShopify}, quedaron ${collections.length} guardadas.` +
+          : `✔ Sincronizado: Shopify devolvió ${fetchedFromShopify}, quedaron ${collections.length} guardadas` +
+            (apiVersionUsada ? ` (API ${apiVersionUsada})` : "") +
+            "." +
             (fetchedFromShopify !== collections.length
               ? " Los números no coinciden: se perdieron filas al guardar."
               : "")

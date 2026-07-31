@@ -1,6 +1,7 @@
 import { UNCATEGORIZED } from "../../../../../shared/sortCollection.mjs";
 import { getCollectionProducts, toCollectionGid } from "../../../../../lib/shopifyClient.js";
 import { getStoreBySlug } from "../../../../../lib/supabaseClient.js";
+import { buildStore } from "../../../../../lib/apiVersion.js";
 import { requireBasicAuth } from "../../../../../lib/auth.js";
 
 function isNumericId(value) {
@@ -19,11 +20,7 @@ export default async function handler(req, res) {
   try {
     const storeRow = await getStoreBySlug(storeSlug);
     if (!storeRow) return res.status(404).json({ ok: false, error: `No existe la tienda "${storeSlug}".` });
-    const store = {
-      shopDomain: storeRow.shop_domain,
-      adminToken: storeRow.admin_token,
-      apiVersion: storeRow.api_version,
-    };
+    const store = await buildStore(storeRow);
 
     const collectionGid = toCollectionGid(id);
     const { title, sortOrder, isManual, products } = await getCollectionProducts(collectionGid, store);

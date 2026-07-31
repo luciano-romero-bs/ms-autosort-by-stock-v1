@@ -222,12 +222,16 @@ export default function StoreSelector({ storeSlug, onChange }) {
             />
           </label>
           <label>
-            Versión de API
+            Versión de API (mínima)
             <input
               value={editForm.apiVersion}
               onChange={(e) => setEditForm({ ...editForm, apiVersion: e.target.value })}
               placeholder={DEFAULT_API_VERSION}
             />
+            <small>
+              La app usa la versión estable más nueva que soporte la tienda. Este valor es el piso,
+              por si Shopify no responde qué versiones soporta.
+            </small>
           </label>
           <label>
             Admin API access token

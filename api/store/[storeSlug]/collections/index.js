@@ -1,5 +1,6 @@
 import { listCollections } from "../../../../lib/shopifyClient.js";
 import { getStoreBySlug, listStoreCollections, replaceStoreCollections } from "../../../../lib/supabaseClient.js";
+import { buildStore } from "../../../../lib/apiVersion.js";
 import { requireBasicAuth } from "../../../../lib/auth.js";
 
 // GET: returns the cached collection list of the store (last sync).
@@ -22,19 +23,17 @@ export default async function handler(req, res) {
     // `collections` (que sale de Supabase, después del upsert y la poda) para
     // poder distinguir "Shopify no la trajo" de "se perdió al guardarla".
     let fetchedFromShopify = null;
+    let apiVersionUsada = null;
     if (req.method === "POST") {
-      const store = {
-        shopDomain: storeRow.shop_domain,
-        adminToken: storeRow.admin_token,
-        apiVersion: storeRow.api_version,
-      };
+      const store = await buildStore(storeRow);
+      apiVersionUsada = store.apiVersion;
       const fresh = await listCollections(store);
       fetchedFromShopify = fresh.length;
       await replaceStoreCollections(storeRow.id, fresh);
     }
 
     const collections = await listStoreCollections(storeRow.id);
-    res.status(200).json({ ok: true, collections, fetchedFromShopify });
+    res.status(200).json({ ok: true, collections, fetchedFromShopify, apiVersionUsada });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
