@@ -177,7 +177,7 @@ export default function Sidebar({ storeSlug, onChange }) {
                 onClick={() => handleDelete(s)}
                 disabled={deletingSlug === s.slug}
               >
-                🗑
+                🗑️
               </button>
             </span>
           </li>

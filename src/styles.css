@@ -788,17 +788,32 @@ button.link-button:hover:not(:disabled) {
   right: var(--space-1);
 }
 
+/* Square photo, classic intrinsic-ratio technique: a wrapper whose height
+   is pinned to its own width via `padding-top: 100%`, with the actual <img>
+   absolutely filling it. More bulletproof than `aspect-ratio` + `object-fit`
+   on the <img> itself — works the same in every browser instead of relying
+   on that specific combination being supported. */
 .manual-product-thumb {
+  position: relative;
+  display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 0;
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  object-fit: cover;
+  padding-top: 100%;
+  overflow: hidden;
   background: var(--color-surface-sunken);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.manual-product-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .manual-product-thumb-empty {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -18,20 +18,16 @@ import { byInventoryDescThenTitle } from "../../shared/sortCollection.mjs";
 
 function Thumbnail({ product }) {
   const url = product.featuredImage?.url;
-  if (!url) {
-    return (
-      <span className="manual-product-thumb manual-product-thumb-empty" aria-hidden="true">
-        ✕
-      </span>
-    );
-  }
   return (
-    <img
-      className="manual-product-thumb"
-      src={url}
-      alt={product.featuredImage?.altText || product.title}
-      loading="lazy"
-    />
+    <span className="manual-product-thumb">
+      {url ? (
+        <img src={url} alt={product.featuredImage?.altText || product.title} loading="lazy" />
+      ) : (
+        <span className="manual-product-thumb-empty" aria-hidden="true">
+          ✕
+        </span>
+      )}
+    </span>
   );
 }
 
