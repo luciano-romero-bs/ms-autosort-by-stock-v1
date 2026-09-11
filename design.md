@@ -282,17 +282,23 @@ grupos y del umbral:
   arriba): es una decisión deliberada — si el usuario está curando el orden a mano, el criterio de
   stock deja de aplicar ahí, igual que las categorías nuevas ya son inmunes al umbral.
 
-El panel edita esto con `CategoryProductOrder.jsx` (`src/components/`), una lista drag-and-drop
+El panel edita esto con `CategoryProductOrder.jsx` (`src/components/`), una grilla drag-and-drop
 anidada dentro de cada fila de `ProductTypeList.jsx`, visible solo cuando esa categoría tiene el
 toggle prendido. Vive únicamente en el panel principal (donde ya están cargados los productos de la
 colección) — la sección "Automatizaciones guardadas" no lo edita (ver `requirements.md`, Fuera de
 alcance).
 
-Cada fila de esa lista muestra la foto del producto (`featuredImage`, pedida a Shopify con
+Se renderiza como una **grilla de tarjetas de 4 columnas** (2 en mobile, `<640px`), no como lista
+vertical — cada tarjeta es foto + título + stock, con el número de posición y el "agarre" de
+arrastre como badges superpuestos a la foto. `SortableContext` usa `rectSortingStrategy` de
+`@dnd-kit/sortable` (el equivalente de `verticalListSortingStrategy` para grillas: soporta
+reordenar entre filas, no solo dentro de una fila).
+
+Cada tarjeta muestra la foto del producto (`featuredImage`, pedida a Shopify con
 `transform: { maxWidth: 200, maxHeight: 200 }` para no traer la imagen a resolución completa —
 `lib/shopifyClient.js#COLLECTION_PRODUCTS_QUERY`), para poder identificar el producto al arrastrar
 sin depender solo del título (R12.4.1). Un producto sin imagen en Shopify (`featuredImage: null`)
-muestra un placeholder en vez de romper la fila.
+muestra un placeholder en vez de romper la tarjeta.
 
 ## 8. Integración con Shopify y serialización
 
