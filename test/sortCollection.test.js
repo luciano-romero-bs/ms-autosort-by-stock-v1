@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sortCollection, UNCATEGORIZED } from "../shared/sortCollection.mjs";
+import { sortCollection, UNCATEGORIZED, isManualOrderEnabled } from "../shared/sortCollection.mjs";
 
 const GROUP_ORDER = [
   "accesorios-bufandas-panuelos",
@@ -146,4 +146,66 @@ test("negative/invalid threshold values are treated as no threshold", () => {
   ];
   const { finalOrder } = sortCollection(products, ["x"], -5);
   assert.deepEqual(finalOrder, ["b", "a"]);
+});
+
+// R12 — per-category manual product order (toggleable).
+test("manual order (enabled) overrides stock-desc within that group only", () => {
+  const products = [
+    { id: "jean-351", title: "JEAN 351", totalInventory: 49, productType: "vestimenta-jeans" },
+    { id: "jean-332", title: "JEAN 332", totalInventory: 5, productType: "vestimenta-jeans" },
+    { id: "polera-c", title: "POLERA C", totalInventory: 15, productType: "vestimenta-poleras" },
+    { id: "polera-a", title: "POLERA A", totalInventory: 1, productType: "vestimenta-poleras" },
+  ];
+  const manualProductOrder = {
+    "vestimenta-jeans": { enabled: true, order: ["jean-332", "jean-351"] },
+  };
+  const { finalOrder } = sortCollection(products, ["vestimenta-jeans", "vestimenta-poleras"], 0, manualProductOrder);
+  // jeans respect the dragged order even though it inverts stock; poleras
+  // (no manual entry) still fall back to stock-desc.
+  assert.deepEqual(finalOrder, ["jean-332", "jean-351", "polera-c", "polera-a"]);
+});
+
+test("manual order: products not yet positioned are appended, stock desc", () => {
+  const products = [
+    { id: "a", title: "A", totalInventory: 10, productType: "x" },
+    { id: "b", title: "B", totalInventory: 30, productType: "x" },
+    { id: "c", title: "C", totalInventory: 20, productType: "x" },
+  ];
+  // Only "a" was ever dragged into position; b/c showed up later (or were
+  // never touched) and fall back to inventory desc, appended after it.
+  const manualProductOrder = { x: { enabled: true, order: ["a"] } };
+  const { finalOrder } = sortCollection(products, ["x"], 0, manualProductOrder);
+  assert.deepEqual(finalOrder, ["a", "b", "c"]);
+});
+
+test("manual order (enabled) exempts the whole group from the stock threshold", () => {
+  const products = [
+    { id: "high", title: "HIGH", totalInventory: 50, productType: "x" },
+    { id: "low", title: "LOW", totalInventory: 1, productType: "x" }, // would be <= threshold
+  ];
+  const manualProductOrder = { x: { enabled: true, order: ["low", "high"] } };
+  const { finalOrder } = sortCollection(products, ["x"], 10, manualProductOrder);
+  // Both stay together in the dragged order, not split by the threshold.
+  assert.deepEqual(finalOrder, ["low", "high"]);
+});
+
+test("manual order entry with enabled:false is ignored (falls back to stock-desc and the threshold)", () => {
+  const products = [
+    { id: "high", title: "HIGH", totalInventory: 50, productType: "x" },
+    { id: "low", title: "LOW", totalInventory: 1, productType: "x" },
+  ];
+  const manualProductOrder = { x: { enabled: false, order: ["low", "high"] } };
+  const { finalOrder } = sortCollection(products, ["x"], 10, manualProductOrder);
+  assert.deepEqual(finalOrder, ["high", "low"]);
+});
+
+test("isManualOrderEnabled reflects the enabled flag per group, including (sin categoría)", () => {
+  const manualProductOrder = {
+    x: { enabled: true, order: [] },
+    y: { enabled: false, order: ["a"] },
+  };
+  assert.equal(isManualOrderEnabled(manualProductOrder, "x"), true);
+  assert.equal(isManualOrderEnabled(manualProductOrder, "y"), false);
+  assert.equal(isManualOrderEnabled(manualProductOrder, "z"), false);
+  assert.equal(isManualOrderEnabled(manualProductOrder, null), false);
 });

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { sortCollection, isBelowThreshold } from "../shared/sortCollection.mjs";
+import { sortCollection, isBelowThreshold, isManualOrderEnabled } from "../shared/sortCollection.mjs";
 import {
   isLoggedIn,
   logout,
@@ -31,6 +31,7 @@ export default function App() {
   const [collectionData, setCollectionData] = useState(null);
   const [productTypeOrder, setProductTypeOrder] = useState([]);
   const [stockThreshold, setStockThreshold] = useState(0);
+  const [manualProductOrder, setManualProductOrder] = useState({});
   const [loadingCollection, setLoadingCollection] = useState(false);
   const [loadError, setLoadError] = useState(null);
 
@@ -65,6 +66,7 @@ export default function App() {
     setAutomateDone(false);
     setAutomateError(null);
     setConfigs([]);
+    setManualProductOrder({});
     if (slug) loadConfigs(slug);
   }
 
@@ -82,10 +84,12 @@ export default function App() {
 
       let savedOrder = null;
       let savedThreshold = 0;
+      let savedManualOrder = {};
       try {
         const { config } = await fetchConfig(storeSlug, toCollectionGid(id));
         savedOrder = config.product_type_order || [];
         savedThreshold = config.stock_threshold || 0;
+        savedManualOrder = config.manual_product_order || {};
       } catch {
         // No saved config for this collection yet — that's expected the first time.
       }
@@ -97,9 +101,11 @@ export default function App() {
           .sort((a, b) => a.localeCompare(b));
         setProductTypeOrder([...known, ...missing]);
         setStockThreshold(savedThreshold);
+        setManualProductOrder(savedManualOrder);
       } else {
         setProductTypeOrder(data.productTypes);
         setStockThreshold(0);
+        setManualProductOrder({});
       }
     } catch (err) {
       setCollectionData(null);
@@ -111,14 +117,18 @@ export default function App() {
 
   const preview = useMemo(() => {
     if (!collectionData) return { orderedProducts: [], bottomIds: new Set() };
-    const { finalOrder } = sortCollection(collectionData.products, productTypeOrder, stockThreshold);
+    const { finalOrder } = sortCollection(collectionData.products, productTypeOrder, stockThreshold, manualProductOrder);
     const byId = new Map(collectionData.products.map((p) => [p.id, p]));
     const orderedProducts = finalOrder.map((id) => byId.get(id));
+    // A group with manual order enabled never falls to the bottom-by-stock
+    // bucket (R12.3), so its low-stock products shouldn't wear the "fondo" tag.
     const bottomIds = new Set(
-      collectionData.products.filter((p) => isBelowThreshold(p, stockThreshold)).map((p) => p.id)
+      collectionData.products
+        .filter((p) => !isManualOrderEnabled(manualProductOrder, p.productType) && isBelowThreshold(p, stockThreshold))
+        .map((p) => p.id)
     );
     return { orderedProducts, bottomIds };
-  }, [collectionData, productTypeOrder, stockThreshold]);
+  }, [collectionData, productTypeOrder, stockThreshold, manualProductOrder]);
 
   async function handleSort() {
     setReordering(true);
@@ -130,6 +140,7 @@ export default function App() {
       const result = await reorderCollection(storeSlug, collectionId, {
         productTypeOrder,
         stockThreshold,
+        manualProductOrder,
         save: false,
       });
       setReorderResult(result);
@@ -170,6 +181,7 @@ export default function App() {
         collectionTitle: collectionData.collectionTitle,
         productTypeOrder,
         stockThreshold,
+        manualProductOrder,
         enabled: true,
         newProductTypes: [],
       });
@@ -224,7 +236,17 @@ export default function App() {
 
           <section>
             <h3>Orden de categorías (productType)</h3>
-            <ProductTypeList items={productTypeOrder} onChange={setProductTypeOrder} />
+            <p className="section-hint">
+              Activá "Orden manual" en una categoría para fijar el orden de sus productos a mano
+              (arrastrando) en vez de por stock.
+            </p>
+            <ProductTypeList
+              items={productTypeOrder}
+              onChange={setProductTypeOrder}
+              products={collectionData.products}
+              manualOrders={manualProductOrder}
+              onManualOrdersChange={setManualProductOrder}
+            />
           </section>
 
           <section>

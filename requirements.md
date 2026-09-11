@@ -151,8 +151,33 @@ Criterios de aceptación:
 3. CADA colección pendiente DEBE ofrecer: "Automatizar stock" (crea la automatización con categorías detectadas automáticamente y el umbral más frecuente de la tienda, previa confirmación), "Crear automatización" (precarga el panel de configuración avanzada con esa colección), e "Ignorar" (la oculta del listado sin automatizarla, reversible desde un listado de ignoradas).
 4. EL SISTEMA DEBE indicar visualmente las colecciones cuyo `sortOrder` no es `MANUAL`, porque la corrida diaria las saltea.
 
+### R12 — Orden manual de productos dentro de una categoría (toggleable)
+
+**Historia:** Como usuario, quiero poder fijar a mano el orden de los productos dentro de una categoría puntual (en vez de por stock), y poder prender/apagar eso por categoría, para curar manualmente qué producto aparece primero cuando el stock no refleja lo que quiero destacar.
+
+Criterios de aceptación:
+1. CADA categoría (`productType`) del panel DEBE tener un toggle "Orden manual", independiente de las demás categorías y del resto de la configuración (orden de grupos, umbral).
+2. CUANDO el toggle de una categoría está apagado, EL SISTEMA DEBE ordenar sus productos por stock descendente (comportamiento de siempre, R2/R5).
+3. CUANDO el toggle de una categoría está prendido, EL SISTEMA DEBE:
+   - ordenar sus productos según el orden arrastrado a mano por el usuario, ignorando el stock;
+   - EXCLUIR por completo a esa categoría del "fondo por umbral" (R3.2) — sus productos se quedan juntos en su posición, aunque alguno tenga stock por debajo del umbral;
+   - ubicar al final del bloque (por stock descendente) cualquier producto de la categoría que todavía no fue posicionado a mano (por ejemplo, uno agregado a Shopify después de definir el orden), sin ocultarlo nunca.
+4. EL SISTEMA DEBE permitir reordenar los productos de una categoría con el toggle prendido mediante drag-and-drop, igual que el orden de categorías (R2.2).
+   4.1. CADA producto de esa lista DEBE mostrar su foto (`featuredImage`), para poder identificarlo
+   de un vistazo al arrastrar — no solo el título. Un producto sin foto en Shopify muestra un
+   placeholder, nunca rompe la lista.
+5. CUANDO el usuario apaga el toggle de una categoría, EL SISTEMA DEBE conservar el orden ya arrastrado (no lo descarta) para poder prenderlo de nuevo más tarde sin rehacer el trabajo.
+6. EL SISTEMA DEBE persistir el orden manual junto con el resto de la automatización (R6, R10) para que la corrida diaria lo reaplique.
+7. La vista previa (R4) DEBE reflejar el orden manual y la exención del umbral exactamente igual que el reordenamiento real, sin llamar de nuevo a Shopify.
+
 ## Fuera de alcance de esta versión
 
 - Docker, Kubernetes, Argo CD, GitOps: no aplican acá (ver `ms-autosort-by-stock/` para esa variante).
 - Alta disponibilidad / múltiples regiones: no hace falta para una tienda interna de bajo tráfico.
 - Migrar a app embebida de Shopify (App Bridge/Polaris): fuera de alcance; sigue siendo un panel standalone.
+- Editar el orden manual de productos (R12) desde la sección "Automatizaciones guardadas": esa
+  editor no tiene los productos de la colección cargados (solo la config guardada), así que el
+  toggle y el drag de productos viven únicamente en el panel principal (donde ya se cargó el
+  Collection ID). Para tocar el orden manual de una automatización ya guardada, se recarga esa
+  colección arriba — precarga la config completa, incluyendo el orden manual — y se automatiza de
+  nuevo.

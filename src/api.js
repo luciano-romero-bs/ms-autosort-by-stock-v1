@@ -74,10 +74,10 @@ export function fetchCollectionProducts(storeSlug, id) {
   return apiFetch(`/api/store/${storeSlug}/collection/${id}/products`);
 }
 
-export function reorderCollection(storeSlug, id, { productTypeOrder, stockThreshold, save }) {
+export function reorderCollection(storeSlug, id, { productTypeOrder, stockThreshold, manualProductOrder, save }) {
   return apiFetch(`/api/store/${storeSlug}/collection/${id}/reorder`, {
     method: "POST",
-    body: JSON.stringify({ productTypeOrder, stockThreshold, save }),
+    body: JSON.stringify({ productTypeOrder, stockThreshold, manualProductOrder, save }),
   });
 }
 
@@ -89,10 +89,14 @@ export function fetchStoreConfigs(storeSlug) {
   return apiFetch(`/api/store/${storeSlug}/configs`);
 }
 
-export function saveConfig(storeSlug, collectionGid, { collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes }) {
+export function saveConfig(
+  storeSlug,
+  collectionGid,
+  { collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes, manualProductOrder }
+) {
   return apiFetch(`/api/store/${storeSlug}/config/${encodeURIComponent(collectionGid)}`, {
     method: "PUT",
-    body: JSON.stringify({ collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes }),
+    body: JSON.stringify({ collectionTitle, productTypeOrder, stockThreshold, enabled, newProductTypes, manualProductOrder }),
   });
 }
 

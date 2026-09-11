@@ -488,6 +488,116 @@ button.link-button:hover:not(:disabled) {
 
 .product-type-item .label {
   font-weight: 500;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.product-type-item-wrapper {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* R12 — per-category manual product order toggle + nested drag list */
+.manual-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.manual-toggle input {
+  cursor: pointer;
+}
+
+.manual-product-order {
+  margin-left: 2.1rem;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-sunken);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.manual-product-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.manual-product-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.65rem;
+  cursor: grab;
+  user-select: none;
+  font-size: var(--fs-sm);
+}
+
+.manual-product-item:active {
+  cursor: grabbing;
+}
+
+.manual-product-item .index {
+  color: var(--color-text-faint);
+  width: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.manual-product-item .drag-handle {
+  color: var(--color-text-faint);
+  line-height: 1;
+}
+
+.manual-product-thumb {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+}
+
+.manual-product-thumb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-faint);
+  font-size: var(--fs-xs);
+}
+
+.manual-product-item .title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manual-product-item .stock {
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.section-hint {
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  margin: -0.35rem 0 var(--space-3);
 }
 
 /* ==========================================================================

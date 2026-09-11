@@ -84,7 +84,8 @@ tienda y viven en la tabla `stores` (sección 4) — se cargan desde el panel, n
 Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.sql` (agrega
 `stores` y reconstruye las tres tablas siguientes con `store_id`) + `0003_new_product_types.sql`
 (columna `new_product_types` en `collection_configs`) + `0004_store_collections.sql` (tabla
-`store_collections` para la detección de colecciones sin automatizar). Correr las cuatro en orden.
+`store_collections` para la detección de colecciones sin automatizar) + `0005_manual_product_order.sql`
+(columna `manual_product_order` en `collection_configs`, R12). Correr las cinco en orden.
 
 ### `stores`
 
@@ -110,6 +111,7 @@ Migraciones: `0001_init.sql` (versión inicial mono-tienda) + `0002_multi_store.
 | `stock_threshold` | int | Umbral. 0 = sin fondo por stock |
 | `enabled` | boolean | Si entra o no en la corrida diaria |
 | `new_product_types` | jsonb | productTypes detectados por el cron que el usuario todavía no ubicó (flags "Nueva" en el panel). Migración `0003` |
+| `manual_product_order` | jsonb | Orden manual de productos por categoría, toggleable (R12). Forma: `{ [productType]: { enabled: boolean, order: string[] } }`, `order` = ids de producto. Migración `0005` |
 | `updated_at` | timestamptz | |
 
 ### `run_logs`
@@ -256,9 +258,41 @@ están en `productTypeOrder` van al **fondo absoluto** de la colección (debajo 
 bajo), como grupos enteros (el umbral no los parte: toda la categoría está pendiente de revisión).
 Entre sí se ordenan alfabéticamente, y adentro por stock descendente. El layout final es:
 
-1. Grupos conocidos en el orden configurado (stock desc adentro de cada uno).
-2. Fondo por stock bajo (`totalInventory <= umbral`), stock desc.
+1. Grupos conocidos en el orden configurado — adentro de cada uno, por stock descendente **salvo**
+   que tenga orden manual prendido (ver abajo), en cuyo caso respeta ese orden.
+2. Fondo por stock bajo (`totalInventory <= umbral`), stock desc — un grupo con orden manual
+   prendido nunca aporta productos acá (R12.3): se queda entero en el paso 1.
 3. Categorías nuevas, al fondo del todo.
+
+### Orden manual por categoría (R12)
+
+`sortCollection` recibe un 4º parámetro opcional, `manualProductOrder`, con la forma
+`{ [productType]: { enabled: boolean, order: string[] } }` (mismo shape que la columna
+`manual_product_order` — ver sección 4). Es un toggle por categoría, independiente del orden de
+grupos y del umbral:
+
+- Un grupo solo usa orden manual si su entrada existe **y** `enabled: true`; si está `false` (o no
+  existe la entrada), ese grupo cae al comportamiento de siempre (stock desc + sujeto al umbral).
+  Apagar el toggle no borra `order` — queda guardado para poder prenderlo de nuevo sin rearrastrar.
+- Con el toggle prendido, dentro del grupo van primero los productos listados en `order` (en ese
+  orden), y después cualquier producto del grupo que **no** esté en `order` — por ejemplo uno
+  agregado a Shopify después de definir el orden manual — ordenado por stock desc como fallback.
+  Nunca se pierde un producto por no estar en la lista guardada.
+- El grupo entero queda exento del "fondo por umbral" mientras el toggle esté prendido (ver punto 2
+  arriba): es una decisión deliberada — si el usuario está curando el orden a mano, el criterio de
+  stock deja de aplicar ahí, igual que las categorías nuevas ya son inmunes al umbral.
+
+El panel edita esto con `CategoryProductOrder.jsx` (`src/components/`), una lista drag-and-drop
+anidada dentro de cada fila de `ProductTypeList.jsx`, visible solo cuando esa categoría tiene el
+toggle prendido. Vive únicamente en el panel principal (donde ya están cargados los productos de la
+colección) — la sección "Automatizaciones guardadas" no lo edita (ver `requirements.md`, Fuera de
+alcance).
+
+Cada fila de esa lista muestra la foto del producto (`featuredImage`, pedida a Shopify con
+`transform: { maxWidth: 200, maxHeight: 200 }` para no traer la imagen a resolución completa —
+`lib/shopifyClient.js#COLLECTION_PRODUCTS_QUERY`), para poder identificar el producto al arrastrar
+sin depender solo del título (R12.4.1). Un producto sin imagen en Shopify (`featuredImage: null`)
+muestra un placeholder en vez de romper la fila.
 
 ## 8. Integración con Shopify y serialización
 

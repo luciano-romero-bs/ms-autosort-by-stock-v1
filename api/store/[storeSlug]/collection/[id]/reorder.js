@@ -8,6 +8,21 @@ function isNumericId(value) {
   return /^\d+$/.test(value ?? "");
 }
 
+// { [productType]: { enabled: boolean, order: string[] } }, see design.md
+// sección 7 (R12). undefined is fine — runReorder defaults it to {}.
+function isValidManualProductOrder(value) {
+  if (value === undefined) return true;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return Object.values(value).every(
+    (entry) =>
+      entry &&
+      typeof entry === "object" &&
+      typeof entry.enabled === "boolean" &&
+      Array.isArray(entry.order) &&
+      entry.order.every((id) => typeof id === "string")
+  );
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
   if (!requireBasicAuth(req, res)) return;
@@ -17,7 +32,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: "Collection ID inválido: debe ser numérico." });
   }
 
-  const { productTypeOrder, stockThreshold, save } = req.body || {};
+  const { productTypeOrder, stockThreshold, manualProductOrder, save } = req.body || {};
 
   if (!Array.isArray(productTypeOrder) || !productTypeOrder.every((t) => typeof t === "string")) {
     return res.status(400).json({ ok: false, error: "productTypeOrder debe ser un array de strings." });
@@ -26,6 +41,12 @@ export default async function handler(req, res) {
   const threshold = stockThreshold ?? 0;
   if (!Number.isInteger(threshold) || threshold < 0) {
     return res.status(400).json({ ok: false, error: "stockThreshold debe ser un entero >= 0." });
+  }
+
+  if (!isValidManualProductOrder(manualProductOrder)) {
+    return res
+      .status(400)
+      .json({ ok: false, error: "manualProductOrder debe ser un objeto { productType: { enabled, order } }." });
   }
 
   try {
@@ -39,6 +60,7 @@ export default async function handler(req, res) {
       collectionGid,
       productTypeOrder,
       stockThreshold: threshold,
+      manualProductOrder: manualProductOrder || {},
       save: Boolean(save),
     });
     res.status(200).json({ ok: true, productsReordered: result.productsReordered });

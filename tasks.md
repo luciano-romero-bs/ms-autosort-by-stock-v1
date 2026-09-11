@@ -121,6 +121,29 @@ probó contra Shopify/Supabase reales (requiere las credenciales reales del usua
   (+ listado colapsable de ignoradas con restaurar). Badge "no Manual". (R11.2–R11.4)
 - [ ] 8.6 Correr `0004_store_collections.sql` en el Supabase real. — **pendiente: lo hace el usuario.**
 
+## Fase 9 — Orden manual de productos por categoría (toggleable)
+
+- [x] 9.1 `supabase/migrations/0005_manual_product_order.sql`: columna `manual_product_order`
+  (jsonb, default `{}`) en `collection_configs`. (R12.6)
+- [x] 9.2 `shared/sortCollection.mjs`: 4º parámetro `manualProductOrder`; un grupo con
+  `enabled: true` usa el orden guardado (productos no posicionados van al final del grupo, por
+  stock desc) y queda exento del fondo por umbral. `groupKey`/`byInventoryDescThenTitle` ahora
+  exportados para reusar la regla de desempate en el frontend. Nuevo `isManualOrderEnabled` para
+  que el preview tagee "fondo" igual que el algoritmo. Tests nuevos (5). (R12.2, R12.3, R12.4)
+- [x] 9.3 Backend: `lib/supabaseClient.js#upsertConfig` y `lib/reorderService.js#runReorder` /
+  `runCronForAllEnabled` pasan `manualProductOrder` de punta a punta; los dos endpoints
+  (`.../reorder.js`, `.../config/[collectionGid].js`) lo validan (`{ enabled, order[] }` por
+  categoría) y lo reenvían. (R12.6)
+- [x] 9.4 Frontend: `CategoryProductOrder.jsx` (nuevo) — drag-and-drop de productos dentro de una
+  categoría con `@dnd-kit`. `ProductTypeList.jsx` extendido: toggle "Orden manual" por categoría +
+  panel anidado, sin romper el uso existente en `SavedAutomations.jsx` (que no pasa `products` y
+  por lo tanto no muestra el toggle — ver Fuera de alcance en `requirements.md`). `App.jsx`
+  mantiene `manualProductOrder` en el estado, lo precarga desde la config guardada, lo manda al
+  preview (`sortCollection` + tag "fondo"), al reorder y a "Automatizar ordenado". (R12.1, R12.4,
+  R12.5, R12.7)
+- [ ] 9.5 Correr `0005_manual_product_order.sql` en el Supabase real. — **pendiente: lo hace el
+  usuario.**
+
 ## Notas
 
 - El token de Shopify es offline y no expira; si aparece un 401, el mensaje indica regenerarlo
