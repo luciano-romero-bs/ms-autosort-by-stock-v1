@@ -8,7 +8,12 @@ const DEFAULT_API_VERSION = "2026-07";
 const EMPTY_FORM = { slug: "", displayName: "", shopDomain: "", adminToken: "", apiVersion: DEFAULT_API_VERSION };
 const EMPTY_EDIT_FORM = { displayName: "", shopDomain: "", adminToken: "", apiVersion: DEFAULT_API_VERSION };
 
-export default function StoreSelector({ storeSlug, onChange }) {
+/**
+ * Left panel: pick/add/edit/delete a store. Edit/delete act on whichever
+ * store's icons you hover — not only the currently selected one — so you
+ * don't have to switch stores just to fix a typo in another one's domain.
+ */
+export default function Sidebar({ storeSlug, onChange }) {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -18,15 +23,13 @@ export default function StoreSelector({ storeSlug, onChange }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  const [editing, setEditing] = useState(false);
+  const [editingSlug, setEditingSlug] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState(null);
 
-  const [deleting, setDeleting] = useState(false);
+  const [deletingSlug, setDeletingSlug] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
-
-  const currentStore = stores.find((s) => s.slug === storeSlug) || null;
 
   async function load(selectSlug) {
     setLoading(true);
@@ -69,16 +72,16 @@ export default function StoreSelector({ storeSlug, onChange }) {
     }
   }
 
-  function startEditing() {
-    if (!currentStore) return;
+  function startEditing(store) {
     setEditForm({
-      displayName: currentStore.display_name,
-      shopDomain: currentStore.shop_domain,
+      displayName: store.display_name,
+      shopDomain: store.shop_domain,
       adminToken: "",
-      apiVersion: currentStore.api_version || DEFAULT_API_VERSION,
+      apiVersion: store.api_version || DEFAULT_API_VERSION,
     });
     setEditError(null);
-    setEditing(true);
+    setShowForm(false);
+    setEditingSlug(store.slug);
   }
 
   async function handleEditSubmit(e) {
@@ -86,9 +89,9 @@ export default function StoreSelector({ storeSlug, onChange }) {
     setEditSaving(true);
     setEditError(null);
     try {
-      await updateStore(storeSlug, editForm);
-      setEditing(false);
-      await load(storeSlug);
+      await updateStore(editingSlug, editForm);
+      setEditingSlug(null);
+      await load();
     } catch (err) {
       setEditError(err.message);
     } finally {
@@ -96,66 +99,90 @@ export default function StoreSelector({ storeSlug, onChange }) {
     }
   }
 
-  async function handleDelete() {
-    if (!currentStore) return;
+  async function handleDelete(store) {
     const ok = window.confirm(
-      `¿Eliminar la tienda "${currentStore.display_name}"?\n\n` +
+      `¿Eliminar la tienda "${store.display_name}"?\n\n` +
         `Esto borra también todas sus automatizaciones, logs y colecciones sincronizadas. ` +
         `No se puede deshacer.`
     );
     if (!ok) return;
 
-    setDeleting(true);
+    setDeletingSlug(store.slug);
     setDeleteError(null);
     try {
-      await deleteStore(storeSlug);
-      setEditing(false);
+      await deleteStore(store.slug);
+      if (editingSlug === store.slug) setEditingSlug(null);
       await load();
     } catch (err) {
       setDeleteError(err.message);
     } finally {
-      setDeleting(false);
+      setDeletingSlug(null);
     }
   }
 
   return (
-    <section className="store-selector">
-      <label>
-        Tienda
-        <select
-          value={storeSlug || ""}
-          onChange={(e) => {
-            setEditing(false);
-            onChange(e.target.value);
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <h2>Tiendas</h2>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={() => {
+            setEditingSlug(null);
+            setShowForm((v) => !v);
           }}
-          disabled={loading || !stores.length}
+          title={showForm ? "Cancelar" : "Agregar tienda"}
+          aria-label={showForm ? "Cancelar" : "Agregar tienda"}
         >
-          {!stores.length && <option value="">(sin tiendas cargadas)</option>}
-          {stores.map((s) => (
-            <option key={s.slug} value={s.slug}>
-              {s.display_name}
-            </option>
-          ))}
-        </select>
-      </label>
+          {showForm ? "✕" : "+"}
+        </button>
+      </div>
+
       {loadError && <p className="error-text" role="alert">✖ {loadError}</p>}
       {deleteError && <p className="error-text" role="alert">✖ {deleteError}</p>}
 
-      <div className="store-selector-actions">
-        <button type="button" className="link-button" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Cancelar" : "+ Agregar tienda"}
-        </button>
-        {currentStore && !editing && (
-          <>
-            <button type="button" className="link-button" onClick={startEditing}>
-              Editar tienda
+      {!loading && !stores.length && !showForm && (
+        <p className="empty-hint">No hay tiendas cargadas todavía.</p>
+      )}
+
+      <ul className="sidebar-store-list">
+        {stores.map((s) => (
+          <li key={s.slug} className={"sidebar-store-item" + (s.slug === storeSlug ? " is-active" : "")}>
+            <button
+              type="button"
+              className="sidebar-store-select"
+              onClick={() => {
+                setEditingSlug(null);
+                onChange(s.slug);
+              }}
+              title={s.display_name}
+            >
+              {s.display_name}
             </button>
-            <button type="button" className="link-button danger-link" onClick={handleDelete} disabled={deleting}>
-              {deleting ? "Eliminando..." : "Eliminar tienda"}
-            </button>
-          </>
-        )}
-      </div>
+            <span className="sidebar-store-actions">
+              <button
+                type="button"
+                className="icon-button"
+                title="Editar tienda"
+                aria-label={`Editar ${s.display_name}`}
+                onClick={() => startEditing(s)}
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                className="icon-button danger"
+                title="Eliminar tienda"
+                aria-label={`Eliminar ${s.display_name}`}
+                onClick={() => handleDelete(s)}
+                disabled={deletingSlug === s.slug}
+              >
+                🗑
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
 
       {showForm && (
         <form className="store-form" onSubmit={handleAddStore}>
@@ -202,9 +229,9 @@ export default function StoreSelector({ storeSlug, onChange }) {
         </form>
       )}
 
-      {editing && currentStore && (
+      {editingSlug && (
         <form className="store-form" onSubmit={handleEditSubmit}>
-          <h4>Editar "{currentStore.display_name}"</h4>
+          <h4>Editar tienda</h4>
           <label>
             Nombre para mostrar
             <input
@@ -247,12 +274,12 @@ export default function StoreSelector({ storeSlug, onChange }) {
             <button type="submit" className="primary" disabled={editSaving}>
               {editSaving ? "Guardando..." : "Guardar cambios"}
             </button>
-            <button type="button" onClick={() => setEditing(false)} disabled={editSaving}>
+            <button type="button" onClick={() => setEditingSlug(null)} disabled={editSaving}>
               Cancelar
             </button>
           </div>
         </form>
       )}
-    </section>
+    </aside>
   );
 }

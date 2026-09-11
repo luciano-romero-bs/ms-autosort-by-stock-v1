@@ -61,7 +61,9 @@ function ProductCard({ product, index }) {
  * (R12), laid out as a 4-column card grid (photo + title + stock) instead
  * of a vertical list — `rectSortingStrategy` is dnd-kit's grid-aware
  * equivalent of `verticalListSortingStrategy`, so dragging across rows
- * reorders correctly instead of only within one row.
+ * reorders correctly instead of only within one row. Rendered by
+ * `ManualOrderColumn` as its own dedicated drill-down column, so it gets a
+ * full column's width to lay the grid out large.
  *
  * `order` is the saved manual order (product ids, possibly stale or
  * incomplete); any product not in it yet is appended sorted by inventory
@@ -95,16 +97,14 @@ export default function CategoryProductOrder({ products, order, onChange }) {
   if (!products.length) return <p className="empty-hint">Sin productos en esta categoría.</p>;
 
   return (
-    <div className="manual-product-order" onPointerDown={(e) => e.stopPropagation()}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={effectiveOrder} strategy={rectSortingStrategy}>
-          <ul className="manual-product-grid">
-            {effectiveOrder.map((id, index) => (
-              <ProductCard key={id} product={byId.get(id)} index={index} />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
-    </div>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={effectiveOrder} strategy={rectSortingStrategy}>
+        <ul className="manual-product-grid">
+          {effectiveOrder.map((id, index) => (
+            <ProductCard key={id} product={byId.get(id)} index={index} />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
   );
 }

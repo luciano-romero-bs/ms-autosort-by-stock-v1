@@ -144,6 +144,30 @@ probó contra Shopify/Supabase reales (requiere las credenciales reales del usua
 - [ ] 9.5 Correr `0005_manual_product_order.sql` en el Supabase real. — **pendiente: lo hace el
   usuario.**
 
+## Fase 10 — Shell fijo con columnas tipo drill-down (UI)
+
+- [x] 10.1 Shell de altura fija (`100vh`, sin scroll de `body`) con sidebar + columnas, cada una
+  con su propio scroll. `src/styles.css` reescrito: `.shell`, `.sidebar`, `.shell-main`, `.col`,
+  `.col-editor`, `.col-manual-order`, `.panel-header`. Ver `design.md` sección 13.
+- [x] 10.2 `Sidebar.jsx` (reemplaza `StoreSelector.jsx`): selector de tienda a la izquierda,
+  editar/eliminar por icono al hover en vez de texto siempre visible.
+- [x] 10.3 `CollectionLoader.jsx`: colapsado detrás de un botón "Cargar colección por ID" (flujo
+  de excepción, no el camino normal).
+- [x] 10.4 `SavedAutomations.jsx`: sin edición inline — "Editar" abre la columna 2
+  (`CollectionEditorPanel.jsx`). Simplifica el componente (menos estado local).
+- [x] 10.5 `UnautomatedCollections.jsx`: buscador + listado colapsado por default, "Ver todo el
+  listado" para expandir sin buscar.
+- [x] 10.6 `CollectionEditorPanel.jsx` (nuevo, columna 2): unifica "cargar por ID" y "editar
+  automatización guardada" en el mismo panel — loader mientras carga, luego categorías + umbral +
+  preview + ordenar/automatizar. Antes vivía todo esto inline en `App.jsx`.
+- [x] 10.7 `ManualOrderColumn.jsx` (nuevo, columna 3) + `PanelHeader.jsx` (nuevo, compartido):
+  abre el orden manual de una categoría (R12) en su propia columna grande, angostando la columna 2.
+  `ProductTypeList.jsx` deja de renderizar el grid inline (ya no importa `CategoryProductOrder`),
+  ahora solo pide abrir/cerrar la columna vía `onOpenCategory`.
+- [x] 10.8 `App.jsx` reducido a orquestar el shell: solo trackea `storeSlug` y `editorId`, toda la
+  lógica de una colección abierta vive en `CollectionEditorPanel`. Se borra `BackToTop.jsx` (sin
+  sentido sin scroll de página).
+
 ## Notas
 
 - El token de Shopify es offline y no expira; si aparece un 401, el mensaje indica regenerarlo

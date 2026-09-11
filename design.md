@@ -381,3 +381,53 @@ Igual que la otra versión (ver `ms-autosort-by-stock/design.md` sección 9), m�
 5. Deploy. Entrar al panel en la URL que da Vercel, login con `PANEL_USER`/`PANEL_PASS`, y usar
    "+ Agregar tienda" para dar de alta la primera tienda (o las que hagan falta).
 6. Confirmar que `vercel.json` quedó activo en Project Settings → Cron Jobs.
+
+## 13. UI — shell fijo con columnas tipo drill-down
+
+El panel dejó de ser una página larga que scrollea de corrido: es un shell de altura fija
+(`100vh`, sin scroll de `body`) con un sidebar y columnas que se van abriendo hacia la derecha —
+cada una scrollea por separado. La lógica de negocio (R1–R12) no cambió, solo dónde vive cada
+pieza en pantalla.
+
+```
+[ Sidebar: tiendas ] [ Columna principal ]                  [ Editor (col. 2) ]  [ Orden manual (col. 3) ]
+   Sidebar.jsx         "Cargar por ID" (colapsado)             CollectionEditor    ManualOrderColumn.jsx
+                        SavedAutomations.jsx                   Panel.jsx           (CategoryProductOrder,
+                        UnautomatedCollections.jsx              (categorías,         en grande)
+                        (buscador, colapsado)                    umbral, preview,
+                                                                  ordenar/automatizar)
+```
+
+- **Sidebar** (`Sidebar.jsx`, ex `StoreSelector.jsx`): selector de tienda + alta/edición/borrado.
+  Editar/eliminar son iconos que aparecen al hacer hover sobre cada fila — no hace falta
+  seleccionar la tienda primero para tocarla.
+- **Columna principal** (`shell-main`, contenido armado directo en `App.jsx`): "Cargar colección
+  por ID" (`CollectionLoader.jsx`) vive colapsado detrás de un botón — es un flujo de excepción,
+  no el camino normal (ver R1 y R11: lo normal es sincronizar colecciones y automatizarlas desde
+  ahí). Debajo, "Automatizaciones guardadas" (`SavedAutomations.jsx`) como vista principal, y
+  "Colecciones sin automatizar" (`UnautomatedCollections.jsx`) como buscador colapsado — con la
+  lista completa oculta hasta tocar "Ver todo el listado" (buscar sí muestra resultados sin
+  necesidad de expandir).
+- **Columna 2 — editor** (`CollectionEditorPanel.jsx`, nuevo): se abre al tocar "Editar" en una
+  automatización guardada o "Crear automatización"/cargar por ID — **es el mismo panel en los tres
+  casos**, la única diferencia es de dónde sale el Collection ID inicial. Muestra un loader
+  (`.panel-loader`) mientras trae los productos de Shopify y la config guardada (si existe); recién
+  con todo cargado renderiza el orden de categorías, umbral, preview y los botones de
+  ordenar/automatizar — el mismo contenido que antes vivía siempre visible en `App.jsx`, ahora
+  encapsulado acá. `App.jsx` solo sabe **qué** Collection ID está abierto (`editorId`); todo lo
+  demás (productos, orden, umbral, orden manual, qué categoría está abierta en la columna 3) es
+  estado interno de este componente, que se remonta entero (vía `key`) cada vez que cambia el
+  target — así no arrastra estado viejo de una colección a la siguiente.
+- **Columna 3 — orden manual** (`ManualOrderColumn.jsx`, nuevo): se abre al tocar "Ordenar
+  productos" en una categoría con el toggle de R12 prendido. Es una vista de detalle sobre datos ya
+  cargados en la columna 2 — no pide nada nuevo a Shopify — así que vive como estado interno de
+  `CollectionEditorPanel`, no de `App.jsx`. Al abrirse, la columna 2 se angosta (`.is-narrow`,
+  420px) y esta se lleva el espacio que sobra, para que la grilla de 4 columnas de
+  `CategoryProductOrder.jsx` (R12) tenga lugar de sobra.
+- **Cierre de columnas**: cada columna tiene su propio botón "✕"/"Volver" (`PanelHeader.jsx`,
+  compartido) que solo la cierra a ella — cerrar la columna 3 vuelve la columna 2 a su ancho
+  completo sin tocar nada de lo cargado ahí; cerrar la columna 2 vuelve a la columna principal sola.
+- **Responsive**: es una herramienta de escritorio pensada para usarse con la ventana ancha; por
+  debajo de 900px el shell no intenta apilar las columnas (no tiene una traducción razonable a una
+  sola columna angosta) — les pone un ancho mínimo y deja que el shell scrollee horizontalmente en
+  vez de aplastar el contenido.

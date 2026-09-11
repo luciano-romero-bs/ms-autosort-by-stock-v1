@@ -31,6 +31,8 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [showIgnored, setShowIgnored] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +41,8 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
     setError(null);
     setNotice(null);
     setShowIgnored(false);
+    setSearch("");
+    setShowAll(false);
     fetchStoreCollections(storeSlug)
       .then(({ collections }) => {
         if (cancelled) return;
@@ -58,6 +62,14 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
   const automatedGids = new Set(configs.map((c) => c.collection_gid));
   const pending = collections.filter((c) => !c.ignored && !automatedGids.has(c.collection_gid));
   const ignored = collections.filter((c) => c.ignored);
+
+  // Searching always filters and shows matches, regardless of "Ver todo el
+  // listado" — that toggle is only for browsing the full list without typing.
+  const trimmedSearch = search.trim().toLowerCase();
+  const searchMatches = trimmedSearch
+    ? pending.filter((c) => (c.title || "").toLowerCase().includes(trimmedSearch))
+    : pending;
+  const visiblePending = trimmedSearch ? searchMatches : showAll ? pending : [];
 
   async function handleSync() {
     setSyncing(true);
@@ -186,38 +198,60 @@ export default function UnautomatedCollections({ storeSlug, configs, onReloadCon
       )}
 
       {pending.length > 0 && (
-        <ul className="collection-list">
-          {pending.map((col) =>
-            renderRow(
-              col,
-              <>
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => onConfigure(numericId(col.collection_gid))}
-                  disabled={busyGid === col.collection_gid}
-                >
-                  Crear automatización
-                </button>
-                <button
-                  type="button"
-                  className="dark"
-                  onClick={() => handleQuickAutomate(col)}
-                  disabled={busyGid === col.collection_gid}
-                >
-                  {busyGid === col.collection_gid ? "Creando..." : "Automatizar stock"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleIgnore(col, true)}
-                  disabled={busyGid === col.collection_gid}
-                >
-                  Ignorar
-                </button>
-              </>
-            )
+        <>
+          <div className="collection-search">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`Buscar entre ${pending.length} colecciones pendientes...`}
+            />
+            {!trimmedSearch && (
+              <button type="button" className="link-button" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? "Ocultar listado" : "Ver todo el listado"}
+              </button>
+            )}
+          </div>
+
+          {trimmedSearch && searchMatches.length === 0 && (
+            <p className="empty-hint">Ninguna colección pendiente coincide con "{search}".</p>
           )}
-        </ul>
+
+          {visiblePending.length > 0 && (
+            <ul className="collection-list">
+              {visiblePending.map((col) =>
+                renderRow(
+                  col,
+                  <>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => onConfigure(numericId(col.collection_gid))}
+                      disabled={busyGid === col.collection_gid}
+                    >
+                      Crear automatización
+                    </button>
+                    <button
+                      type="button"
+                      className="dark"
+                      onClick={() => handleQuickAutomate(col)}
+                      disabled={busyGid === col.collection_gid}
+                    >
+                      {busyGid === col.collection_gid ? "Creando..." : "Automatizar stock"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleIgnore(col, true)}
+                      disabled={busyGid === col.collection_gid}
+                    >
+                      Ignorar
+                    </button>
+                  </>
+                )
+              )}
+            </ul>
+          )}
+        </>
       )}
 
       {ignored.length > 0 && (

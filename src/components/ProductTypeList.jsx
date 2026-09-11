@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -15,63 +14,46 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { groupKey } from "../../shared/sortCollection.mjs";
-import CategoryProductOrder from "./CategoryProductOrder.jsx";
 
-function CategoryItem({ id, index, products, manualEntry, onToggleManual, onReorderProducts }) {
+function CategoryItem({ id, index, manualOrderAvailable, manualEntry, isActive, onToggleManual, onOpenCategory }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const [expanded, setExpanded] = useState(false);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  // `products` (the full collection) is only passed from the main panel,
-  // where a Collection ID is already loaded — the "Automatizaciones
-  // guardadas" editor doesn't have live product data, so it renders the
-  // plain category row without the manual-order toggle (R12 is scoped to
-  // the panel that already fetched Shopify's product list).
-  const manualOrderAvailable = Boolean(products);
   const enabled = Boolean(manualEntry?.enabled);
-  const categoryProducts = manualOrderAvailable
-    ? products.filter((p) => groupKey(p.productType) === id)
-    : [];
 
   return (
-    <li ref={setNodeRef} style={style} className="product-type-item-wrapper">
-      <div className="product-type-item" {...attributes} {...listeners}>
-        <span className="drag-handle">⠿</span>
-        <span className="index">{index + 1}</span>
-        <span className="label">{id}</span>
-        {manualOrderAvailable && (
-          <label className="manual-toggle" onPointerDown={(e) => e.stopPropagation()}>
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => onToggleManual(id, e.target.checked)}
-            />
-            Orden manual
-          </label>
-        )}
-        {manualOrderAvailable && enabled && (
-          <button
-            type="button"
-            className="link-button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? "Ocultar productos" : "Ordenar productos"}
-          </button>
-        )}
-      </div>
-
-      {manualOrderAvailable && enabled && expanded && (
-        <CategoryProductOrder
-          products={categoryProducts}
-          order={manualEntry?.order || []}
-          onChange={(order) => onReorderProducts(id, order)}
-        />
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={"product-type-item" + (isActive ? " is-active" : "")}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="drag-handle">⠿</span>
+      <span className="index">{index + 1}</span>
+      <span className="label">{id}</span>
+      {manualOrderAvailable && (
+        <label className="manual-toggle" onPointerDown={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onToggleManual(id, e.target.checked)}
+          />
+          Orden manual
+        </label>
+      )}
+      {manualOrderAvailable && enabled && (
+        <button
+          type="button"
+          className="link-button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => onOpenCategory(isActive ? null : id)}
+        >
+          {isActive ? "Editando →" : "Ordenar productos"}
+        </button>
       )}
     </li>
   );
@@ -79,12 +61,24 @@ function CategoryItem({ id, index, products, manualEntry, onToggleManual, onReor
 
 /**
  * Drag-and-drop list of productType groups (R2), extended for R12: when
- * `products` is supplied, each category shows an "Orden manual" toggle that,
- * once on, expands to a nested drag-and-drop list of that category's
- * products (`CategoryProductOrder`) overriding the stock-desc sort for it.
+ * `manualOrderAvailable` is true, each category shows an "Orden manual"
+ * toggle that, once on, exposes "Ordenar productos" — clicking it asks the
+ * parent (via `onOpenCategory`) to open that category's manual-order column
+ * (see CollectionEditorPanel/ManualOrderColumn), it doesn't render the
+ * product grid inline here. `activeCategory` highlights whichever category
+ * currently has that column open.
+ *
  * `manualOrders` shape: { [productType]: { enabled: boolean, order: string[] } }.
  */
-export default function ProductTypeList({ items, onChange, products, manualOrders = {}, onManualOrdersChange }) {
+export default function ProductTypeList({
+  items,
+  onChange,
+  manualOrderAvailable = false,
+  manualOrders = {},
+  onManualOrdersChange,
+  activeCategory = null,
+  onOpenCategory,
+}) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -104,11 +98,8 @@ export default function ProductTypeList({ items, onChange, products, manualOrder
       ...manualOrders,
       [type]: { enabled: checked, order: manualOrders[type]?.order || [] },
     });
-  }
-
-  function handleReorderProducts(type, order) {
-    if (!onManualOrdersChange) return;
-    onManualOrdersChange({ ...manualOrders, [type]: { enabled: true, order } });
+    // Turning a category's manual order off while its column is open closes it.
+    if (!checked && activeCategory === type) onOpenCategory?.(null);
   }
 
   if (!items.length) return <p className="empty-hint">No hay productType para ordenar todavía.</p>;
@@ -122,10 +113,11 @@ export default function ProductTypeList({ items, onChange, products, manualOrder
               key={item}
               id={item}
               index={index}
-              products={products}
+              manualOrderAvailable={manualOrderAvailable}
               manualEntry={manualOrders[item]}
+              isActive={activeCategory === item}
               onToggleManual={handleToggleManual}
-              onReorderProducts={handleReorderProducts}
+              onOpenCategory={onOpenCategory}
             />
           ))}
         </ul>

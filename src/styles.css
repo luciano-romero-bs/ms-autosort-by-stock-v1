@@ -52,7 +52,6 @@
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
-  --space-10: 2.5rem;
 
   /* Radius */
   --radius-sm: 4px;
@@ -63,10 +62,6 @@
   /* Elevation — kept deliberately quiet, no glass, no strong drop shadows */
   --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.05);
   --shadow-md: 0 4px 14px oklch(0% 0 0 / 0.12);
-
-  /* z-index scale */
-  --z-sticky: 20;
-  --z-fixed: 30;
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -83,9 +78,16 @@
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
 }
 
+/* The app is a fixed-height shell, not a scrolling document: the sidebar
+   and every drill-down column scroll independently (see "Shell / layout"
+   below). Only the pre-login screen relies on normal document flow, and its
+   content is short enough to never need it. */
 body {
+  height: 100%;
+  overflow: hidden;
   margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
@@ -93,6 +95,10 @@ body {
   font-size: var(--fs-base);
   line-height: var(--lh-normal);
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
 }
 
 h1, h2, h3, h4 {
@@ -183,25 +189,27 @@ a {
 }
 
 /* ==========================================================================
-   Shell / navigation
+   Shell / layout
+   `.shell-page` (navbar + `.shell`) fills the viewport. `.shell` is a flex
+   row: sidebar, home column, then up to two drill-down columns opened from
+   it (the collection editor, and inside it the manual-order grid) — Finder-
+   style: opening a new column narrows the one before it (`.is-narrow`) but
+   never hides it, and the newest/rightmost column always gets whatever
+   space is left (`flex: 1 1 auto`). Every column scrolls independently.
    ========================================================================== */
-.app {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-5) var(--space-10);
+.shell-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .navbar {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  flex: none;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
 .navbar-inner {
-  max-width: 760px;
-  margin: 0 auto;
   padding: var(--space-3) var(--space-5);
   display: flex;
   justify-content: space-between;
@@ -212,6 +220,228 @@ a {
 .navbar h1 {
   font-size: var(--fs-md);
   margin: 0;
+}
+
+.shell {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* -- Sidebar (stores) ---------------------------------------------------- */
+.sidebar {
+  flex: none;
+  width: 260px;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header h2 {
+  font-size: var(--fs-md);
+  margin: 0;
+}
+
+.sidebar-store-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sidebar-store-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out-expo);
+}
+
+.sidebar-store-item:hover {
+  background: var(--color-surface-sunken);
+}
+
+.sidebar-store-item.is-active {
+  background: var(--color-brand-tint);
+}
+
+.sidebar-store-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.6rem;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-store-item.is-active .sidebar-store-select {
+  color: var(--color-brand);
+}
+
+.sidebar-store-actions {
+  display: flex;
+  gap: 0.1rem;
+  flex-shrink: 0;
+  padding-right: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out-expo);
+}
+
+.sidebar-store-item:hover .sidebar-store-actions,
+.sidebar-store-item:focus-within .sidebar-store-actions {
+  opacity: 1;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-ink);
+}
+
+.icon-button.danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  border-color: oklch(80% 0.06 25);
+}
+
+/* -- Home column + drill-down columns ------------------------------------ */
+.shell-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-5);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.shell-main.is-narrow {
+  flex: 0 0 360px;
+  width: 360px;
+}
+
+.shell-empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.col {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.col-editor {
+  flex: 1 1 auto;
+}
+
+.col-editor.is-narrow {
+  flex: 0 0 420px;
+  width: 420px;
+}
+
+.col-manual-order {
+  flex: 1 1 auto;
+  border-right: none;
+}
+
+.panel-header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+
+.panel-header-subtitle {
+  margin: 0.15rem 0 0;
+  color: var(--color-text-faint);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.col-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.panel-loader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  padding: var(--space-8) 0;
+}
+
+.spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ==========================================================================
@@ -361,32 +591,8 @@ button.link-button:hover:not(:disabled) {
 }
 
 /* ==========================================================================
-   Store selector
+   Store add/edit forms (sidebar)
    ========================================================================== */
-.store-selector {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.store-selector label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 240px;
-}
-
-.store-selector-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
 .link-button.danger-link {
   color: var(--color-danger);
   text-decoration-color: oklch(80% 0.06 25);
@@ -404,9 +610,8 @@ button.link-button:hover:not(:disabled) {
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-4);
-  min-width: 280px;
-  max-width: 360px;
+  padding: var(--space-3);
+  width: 100%;
 }
 
 .store-form label {
@@ -515,12 +720,9 @@ button.link-button:hover:not(:disabled) {
   cursor: pointer;
 }
 
-.manual-product-order {
-  margin-left: 2.1rem;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-sunken);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
+.product-type-item.is-active {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 1px var(--color-brand);
 }
 
 /* 4-column card grid — rectSortingStrategy (dnd-kit) reorders correctly
@@ -716,7 +918,6 @@ button.link-button:hover:not(:disabled) {
    Automations
    ========================================================================== */
 .automations {
-  margin-top: var(--space-8);
   padding-top: var(--space-5);
   border-top: 1px solid var(--color-border);
 }
@@ -846,6 +1047,18 @@ button.link-button:hover:not(:disabled) {
   flex-wrap: wrap;
 }
 
+.collection-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-3) 0;
+}
+
+.collection-search input {
+  flex: 1 1 220px;
+}
+
 .collection-list {
   list-style: none;
   padding: 0;
@@ -911,35 +1124,6 @@ button.link-button:hover:not(:disabled) {
 }
 
 /* ==========================================================================
-   Back to top
-   ========================================================================== */
-.back-to-top {
-  position: fixed;
-  bottom: var(--space-6);
-  right: var(--space-6);
-  z-index: var(--z-fixed);
-  background: var(--color-ink);
-  color: var(--color-surface);
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 0.6rem 1.05rem;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  box-shadow: var(--shadow-md);
-  cursor: pointer;
-  transition: background-color var(--duration-fast) var(--ease-out-expo),
-    transform var(--duration-base) var(--ease-out-expo);
-}
-
-.back-to-top:hover {
-  background: oklch(32% 0 0);
-}
-
-.back-to-top:active {
-  transform: scale(0.96);
-}
-
-/* ==========================================================================
    Status text (paired with role="alert" / role="status" in markup)
    ========================================================================== */
 .error-text {
@@ -970,14 +1154,13 @@ button.link-button:hover:not(:disabled) {
 
 /* ==========================================================================
    Responsive
-   Structural collapse, not fluid type: the panel is used from desktop, but
-   should not break if the window is narrow.
+   This is a desktop tool built around side-by-side columns, which don't
+   have a sensible single-column translation on a phone. Below ~900px the
+   goal isn't to reflow the shell, just to keep it usable: columns get a
+   floor width and the shell scrolls horizontally instead of squeezing
+   everything to the point of being unreadable.
    ========================================================================== */
-@media (max-width: 640px) {
-  .app {
-    padding: var(--space-4) var(--space-4) var(--space-8);
-  }
-
+@media (max-width: 900px) {
   .navbar-inner {
     padding: var(--space-3) var(--space-4);
   }
@@ -991,16 +1174,37 @@ button.link-button:hover:not(:disabled) {
     flex-wrap: wrap;
   }
 
+  .shell {
+    overflow-x: auto;
+  }
+
+  .sidebar {
+    width: 210px;
+  }
+
+  .shell-main {
+    min-width: 320px;
+  }
+
+  .shell-main.is-narrow {
+    flex-basis: 280px;
+    width: 280px;
+  }
+
+  .col-editor {
+    min-width: 360px;
+  }
+
+  .col-editor.is-narrow {
+    flex-basis: 340px;
+    width: 340px;
+  }
+
+  .col-manual-order {
+    min-width: 380px;
+  }
+
   .manual-product-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .manual-product-order {
-    margin-left: 0;
-  }
-
-  .back-to-top {
-    bottom: var(--space-4);
-    right: var(--space-4);
   }
 }
